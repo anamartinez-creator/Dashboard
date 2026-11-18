@@ -258,7 +258,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                 <input className="map-search" type="search" placeholder="Search a client or person…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search clients or people" />
               </div>
 
-              <div className="map" role="list">
+              {quick === "all" && <div className="map" role="list">
                 {mapRows.map((r) => {
                   const pi = r.pilotInfo;
                   const sub = pi
@@ -275,7 +275,8 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   );
                 })}
                 {mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
-              </div>
+              </div>}
+              {quick !== "all" && mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
             </section>
 
 
