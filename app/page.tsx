@@ -11,7 +11,7 @@ export default async function Page() {
   } catch (err) {
     return (
       <main className="wrap">
-        <h1>SDM Delivery Health</h1>
+        <h1>Software Service Delivery Dashboard</h1>
         <div className="error">
           <strong>Could not read Notion.</strong>
           <p>{err instanceof Error ? err.message : String(err)}</p>

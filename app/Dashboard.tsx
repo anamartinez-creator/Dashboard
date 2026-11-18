@@ -167,7 +167,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     <main className="wrap">
       <header className="head">
         <div>
-          <h1>SDM Delivery Health</h1>
+          <h1>Software Service Delivery Dashboard</h1>
           <p className="lede">
             <b>{lights.green}</b> clients on track, <b>{lights.yellow}</b> need attention and <b>{lights.red}</b> high risk.{" "}
             <b>{flags.length}</b> of <b>{counts.total}</b> people need follow-up.

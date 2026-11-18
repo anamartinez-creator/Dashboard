@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SDM Delivery Health",
+  title: "Software Service Delivery Dashboard",
   description: "Client and team health from the Master SDM Tracker",
   robots: { index: false, follow: false },
 };
