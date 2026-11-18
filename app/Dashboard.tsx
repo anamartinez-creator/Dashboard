@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Client, Engineer, LatestNote, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
@@ -54,6 +54,17 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
 
+  // Interactivity for Active Client Health: filter by color, pick a client, sort columns
+  const [lightFilter, setLightFilter] = useState<Light | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ by: "health" | "name" | "score"; dir: 1 | -1 }>({ by: "health", dir: 1 });
+  const pickClient = (key: string) => {
+    setSelected((cur) => (cur === key ? null : key));
+    document.getElementById(`row-${key}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  const toggleSort = (by: "health" | "name" | "score") =>
+    setSort((cur) => (cur.by === by ? { by, dir: (cur.dir * -1) as 1 | -1 } : { by, dir: by === "score" ? -1 : 1 }));
+
   // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
   // Dates come from the people: first start and last end among those in pilot.
   const pilotClients = useMemo(() => {
@@ -100,6 +111,12 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     const inPilot = new Set(pilotClients.map((p) => p.h.key));
     return health.filter((h) => !inPilot.has(h.key));
   }, [health, pilotClients]);
+
+  const visibleHealth = useMemo(() => {
+    const rows = shownHealth.filter((h) => !lightFilter || h.light === lightFilter);
+    if (sort.by === "health") return rows; // already red / yellow / green, then score
+    return [...rows].sort((a, b) => sort.dir * (sort.by === "score" ? a.score - b.score : a.name.localeCompare(b.name)));
+  }, [shownHealth, lightFilter, sort]);
 
   // People grouped by client, using the client names from Active Clients Status.
   // Someone on two clients shows up under both.
@@ -172,15 +189,21 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           Clients outside the pilot period. Red first, then yellow. Red: High Risk, SOW Pending or expired pilot. Yellow: Needs Attention, unsigned SOW, pilot ending in {PILOT_WARN_DAYS} days or less, or people without a 1:1 cadence.
           The score (0 to 100) orders clients within each color.
         </p>
+        <HealthChart all={shownHealth} rows={visibleHealth} filter={lightFilter} onFilter={setLightFilter} selected={selected} onPick={pickClient} />
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Client</th><th>Health</th><th>Score</th><th>Notion status</th><th className="center">People</th><th>Reasons</th></tr>
+              <tr>
+                <SortTh label="Client" active={sort.by === "name"} dir={sort.dir} onClick={() => toggleSort("name")} />
+                <SortTh label="Health" active={sort.by === "health"} dir={sort.dir} onClick={() => setSort({ by: "health", dir: 1 })} />
+                <SortTh label="Score" active={sort.by === "score"} dir={sort.dir} onClick={() => toggleSort("score")} />
+                <th>Notion status</th><th className="center">People</th><th>Reasons</th>
+              </tr>
             </thead>
             <tbody>
-              {shownHealth.length === 0 && <EmptyRow cols={6} text="No clients on your team." />}
-              {shownHealth.map((h) => (
-                <tr key={h.key}>
+              {visibleHealth.length === 0 && <EmptyRow cols={6} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
+              {visibleHealth.map((h) => (
+                <tr key={h.key} id={`row-${h.key}`} className={`clickable${selected === h.key ? " is-selected" : ""}`} onClick={() => setSelected((cur) => (cur === h.key ? null : h.key))}>
                   <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
                   <td><LightPill light={h.light} /></td>
                   <td><ScoreBar h={h} /></td>
@@ -401,5 +424,68 @@ function ScoreBar({ h }: { h: ClientHealth }) {
       <span className="score-track"><span className={`score-fill seg-${LIGHT_CLASS[h.light]}`} style={{ width: `${h.score}%` }} /></span>
       <span className="score-num">{h.score}</span>
     </span>
+  );
+}
+
+
+function SortTh({ label, active, dir, onClick }: { label: string; active: boolean; dir: 1 | -1; onClick: () => void }) {
+  return (
+    <th aria-sort={active ? (dir === 1 ? "ascending" : "descending") : "none"}>
+      <button type="button" className={`sort${active ? " on" : ""}`} onClick={onClick}>
+        {label}<span aria-hidden="true">{active ? (dir === 1 ? " ▲" : " ▼") : ""}</span>
+      </button>
+    </th>
+  );
+}
+
+// Visual summary of client health: how many clients per color (click to filter), and one bar
+// per client (length = score 0-100, color = health light; click to highlight its row below).
+function HealthChart({ all, rows, filter, onFilter, selected, onPick }: {
+  all: ClientHealth[]; rows: ClientHealth[]; filter: Light | null; onFilter: (l: Light | null) => void;
+  selected: string | null; onPick: (key: string) => void;
+}) {
+  if (all.length === 0) return null;
+  const n = (l: Light) => all.filter((h) => h.light === l).length;
+  const mix: { light: Light; label: string; count: number }[] = [
+    { light: "green", label: "Green", count: n("green") },
+    { light: "yellow", label: "Yellow", count: n("yellow") },
+    { light: "red", label: "Red", count: n("red") },
+  ];
+  const toggle = (l: Light) => onFilter(filter === l ? null : l);
+  const bars = [...rows].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  return (
+    <figure className="hchart" aria-label="Client health chart">
+      <div className="hchart-mix">
+        <div className="mix" role="group" aria-label="Filter clients by color">
+          {mix.filter((m) => m.count > 0).map((m) => (
+            <button
+              type="button" key={m.light}
+              className={`mix-seg seg-${LIGHT_CLASS[m.light]}${filter && filter !== m.light ? " dim" : ""}`}
+              style={{ flex: m.count }} onClick={() => toggle(m.light)}
+              aria-pressed={filter === m.light} title={`${m.count} ${m.label}. Click to filter`}
+            />
+          ))}
+        </div>
+        <div className="legend">
+          {mix.map((m) => (
+            <button type="button" key={m.light} className={`chip${filter === m.light ? " on" : ""}`} onClick={() => toggle(m.light)} aria-pressed={filter === m.light}>
+              <i className={`seg-${LIGHT_CLASS[m.light]}`} />{m.label} {m.count}
+            </button>
+          ))}
+          {filter && <button type="button" className="chip clear" onClick={() => onFilter(null)}>Clear filter</button>}
+        </div>
+      </div>
+      <div className="hchart-bars">
+        {bars.map((h) => (
+          <button type="button" className={`hbar${selected === h.key ? " is-selected" : ""}`} key={h.key} onClick={() => onPick(h.key)} title={`${h.name}: score ${h.score} of 100. Click to highlight`}>
+            <span className="hbar-label">{h.name}</span>
+            <span className="hbar-track">
+              <span className={`hbar-fill seg-${LIGHT_CLASS[h.light]}`} style={{ width: `${h.score}%` }} />
+            </span>
+            <span className="hbar-num">{h.score}</span>
+          </button>
+        ))}
+      </div>
+    </figure>
   );
 }
