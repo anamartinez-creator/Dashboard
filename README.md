@@ -39,6 +39,19 @@ Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser 
 - Al navegador solo llegan los campos que muestra la página. **Salary Rate, Equipment, Notes y las notas del SOW Tracker nunca salen del servidor.**
 - La página no aparece en buscadores (`noindex`).
 
+## Actualización instantánea con webhook (opcional)
+
+Sin esto el dashboard se pone al día en ~1 minuto. Con el webhook, Notion avisa en cuanto algo cambia.
+
+1. Haz deploy con el código actual (la ruta `/api/notion-webhook` ya existe).
+2. En https://www.notion.so/profile/integrations abre tu integración → pestaña **Webhooks** → **Create a subscription**.
+   - URL: `https://<tu-dominio-de-vercel>/api/notion-webhook`
+   - Eventos: `page.created`, `page.properties_updated`, `page.deleted` y `page.undeleted`.
+3. Notion envía un `verification_token`. Cópialo de **Vercel → Logs** (busca "Notion webhook verification_token") y pégalo en Notion para verificar la suscripción.
+4. Guarda ese mismo token en Vercel como `NOTION_WEBHOOK_SECRET` y haz **Redeploy**.
+
+Cada evento llega firmado; la ruta rechaza todo lo que no tenga una firma válida. Es la única ruta que no pide la contraseña del sitio.
+
 ## Probarlo en tu compu (opcional)
 
 ```bash
@@ -61,4 +74,6 @@ Para comprobar que compila antes de subir: `npm run build`.
 - `lib/notion.ts`: lee Notion y decide qué campos se usan. Si renombran una propiedad en Notion, se ajusta aquí.
 - `app/Dashboard.tsx`: la página con el filtro, las tablas y la gráfica.
 - `middleware.ts`: la contraseña.
+- `app/api/notion-webhook/route.ts`: recibe los avisos de Notion y refresca los datos.
+- `app/api/refresh/route.ts`: el botón "Actualizar ahora".
 - `.env.example`: plantilla de las variables de entorno.

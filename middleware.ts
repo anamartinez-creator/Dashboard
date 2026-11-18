@@ -27,4 +27,4 @@ function timingSafeEqual(a: string, b: string) {
   return diff === 0;
 }
 
-export const config = { matcher: "/((?!_next/static|_next/image|favicon.ico).*)" };
+export const config = { matcher: "/((?!_next/static|_next/image|favicon.ico|api/notion-webhook).*)" };
