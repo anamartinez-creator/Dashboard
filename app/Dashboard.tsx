@@ -57,6 +57,8 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   // Interactivity for Active Client Health: filter by color, pick a client, sort columns
   const [lightFilter, setLightFilter] = useState<Light | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [teamQuery, setTeamQuery] = useState("");
+  const [teamDetails, setTeamDetails] = useState(false);
   const [sort, setSort] = useState<{ by: "health" | "name" | "score"; dir: 1 | -1 }>({ by: "health", dir: 1 });
   const pickClient = (key: string) => {
     setSelected((cur) => (cur === key ? null : key));
@@ -122,18 +124,26 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   // Someone on two clients shows up under both.
   const teamByClient = useMemo(() => {
     const pilotKeys = new Set(pilotClients.map((p) => p.h.key));
-    const m = new Map<string, { client: string; pilot: boolean; people: Engineer[] }>();
+    const m = new Map<string, { client: string; pilot: boolean; light: Light | null; people: Engineer[] }>();
     for (const e of mine) {
       for (const label of e.clients.length ? e.clients : ["No client"]) {
         const match = health.find((h) => sameClient(h.name, label));
         const name = match?.name ?? label;
-        const g = m.get(name) ?? { client: name, pilot: match ? pilotKeys.has(match.key) : false, people: [] };
+        const g = m.get(name) ?? { client: name, pilot: match ? pilotKeys.has(match.key) : false, light: match?.light ?? null, people: [] };
         g.people.push(e);
         m.set(name, g);
       }
     }
     return Array.from(m.values()).sort((a, b) => b.people.length - a.people.length || a.client.localeCompare(b.client));
   }, [mine, health, pilotClients]);
+
+  const visibleTeam = useMemo(() => {
+    const q = teamQuery.trim().toLowerCase();
+    if (!q) return teamByClient;
+    return teamByClient
+      .map((g) => (g.client.toLowerCase().includes(q) ? g : { ...g, people: g.people.filter((e) => `${e.name} ${e.role}`.toLowerCase().includes(q)) }))
+      .filter((g) => g.people.length > 0);
+  }, [teamByClient, teamQuery]);
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -349,35 +359,43 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
       <section>
         <h2>Team by client</h2>
-        <p className="hint">Clients with the most people first; within each, whoever needs attention comes first. The name opens the person's Notion page. People on two clients appear under both.</p>
-        {teamByClient.length === 0 && <p className="hint">Nobody assigned.</p>}
-        <div className="groups">
-          {teamByClient.map((g) => (
-            <div className="group" key={g.client}>
-              <h3>
-                {g.client} <span className="count">{g.people.length} {g.people.length === 1 ? "person" : "people"}</span>
+        <div className="team-tools">
+          <input
+            type="search" className="team-search" placeholder="Search person, role or client"
+            value={teamQuery} onChange={(e) => setTeamQuery(e.target.value)} aria-label="Search the team"
+          />
+          <label className="team-toggle">
+            <input type="checkbox" checked={teamDetails} onChange={(e) => setTeamDetails(e.target.checked)} /> Show details (1:1, start, country)
+          </label>
+        </div>
+        {visibleTeam.length === 0 && <p className="hint">{teamQuery ? "No matches." : "Nobody assigned."}</p>}
+        <div className="cards">
+          {visibleTeam.map((g) => (
+            <article className="card" key={g.client}>
+              <header className="card-head">
+                <h3>
+                  {g.light && <LightPill light={g.light} />} {g.client}
+                </h3>
+                <span className="count">{g.people.length} {g.people.length === 1 ? "person" : "people"}</span>
                 {g.pilot && <Pill s="Pilot" className="info" />}
-              </h3>
-              <div className="tw">
-                <table className="team-table">
-                  <thead>
-                    <tr><th>Person</th><th>Status</th><th>Role</th><th>1:1</th><th>Start</th><th>Country</th></tr>
-                  </thead>
-                  <tbody>
-                    {g.people.map((e) => (
-                      <tr key={e.id}>
-                        <td><NameLink href={e.url}>{e.name}</NameLink></td>
-                        <td><Pill s={e.status} /></td>
-                        <td className="muted">{e.role || "—"}</td>
-                        <td className={e.cadence ? "" : "muted"}>{e.cadence ?? "Not set"}</td>
-                        <td className="muted">{fmtDate(e.startDate)}</td>
-                        <td className="muted">{e.location || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+              </header>
+              <ul className="people">
+                {g.people.map((e) => (
+                  <li key={e.id}>
+                    <div className="person-main">
+                      <NameLink href={e.url}>{e.name}</NameLink>
+                      <span className="person-role">{e.role || "—"}</span>
+                    </div>
+                    <Pill s={e.status} />
+                    {teamDetails && (
+                      <div className="person-detail">
+                        1:1 {e.cadence ?? "not set"} · Start {fmtDate(e.startDate)} · {e.location || "—"}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </article>
           ))}
         </div>
       </section>
