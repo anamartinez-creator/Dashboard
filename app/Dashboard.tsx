@@ -188,7 +188,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     new: (r) => r.h.engineers.some((e) => e.status === "New Hire" || e.status === "Hiring"),
     stale: (r) => r.ago !== null && r.ago > 30,
   };
-  const QUICK_LABEL: [Quick, string][] = [["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["pilot", "In pilot"], ["ending", "Pilots ending soon"], ["new", "New hires"], ["stale", "No recent contact"]];
+  const QUICK_LABEL: [Quick, string][] = [["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["pilot", "In pilot"], ["ending", "Pilots ending soon"], ["stale", "No recent contact"]];
   const mapRows = useMemo(() => {
     const sev = { red: 0, yellow: 1, green: 2 } as Record<Light, number>;
     const needle = q.trim().toLowerCase();
@@ -293,6 +293,17 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                           <span className="muted">{headcount(r.h) || "—"} people{r.pilotInfo ? ` · Pilot ${range(r.pilotInfo.start, r.pilotInfo.end)}` : ""}</span>
                           <button type="button" className="more" onClick={() => setOpenKey(r.h.key)}>Full detail →</button>
                         </header>
+                        {r.pilotInfo && (() => {
+                          const pi = r.pilotInfo;
+                          const pct = pi.daysLeft === null || pi.notStarted ? 0 : Math.max(0, Math.min(100, ((PILOT_DAYS - pi.daysLeft) / PILOT_DAYS) * 100));
+                          return (
+                            <div className="detail-pilot">
+                              <div className="detail-pilot-row"><PilotTag p={pi} /><span className="muted">{range(pi.start, pi.end)}</span></div>
+                              <div className="pilot-track" role="img" aria-label={`${Math.round(pct)}% of the pilot elapsed`}><span style={{ width: `${pct}%` }} /></div>
+                              {r.h.engineers.length > 0 && <p className="ov-sub">{[...r.h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => e.name).join(", ")}</p>}
+                            </div>
+                          );
+                        })()}
                         <ul className="reasons">
                           {why.map((x, i) => <li key={i} className={`r-${x.level}`}>{x.text}</li>)}
                           {staleTxt && <li className="r-yellow">{staleTxt}</li>}

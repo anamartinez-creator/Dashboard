@@ -408,3 +408,5 @@ h2.brief-title::before { display: none; }
 .detail .more { margin-left: auto; padding: 0; }
 .detail .reasons li { padding: 3px 0 3px 18px; }
 .detail .reasons li::before { top: 11px; }
+.detail-pilot { margin: 0 0 10px; }
+.detail-pilot-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
