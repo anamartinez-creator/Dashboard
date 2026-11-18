@@ -71,7 +71,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   }, []);
 
   // Summary cards jump to their tab and section (client cards also set the color filter)
-  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-pilot": "clients", "sec-client-followup": "clients", "sec-followup": "people", "sec-team": "people", "sec-people-client": "people" };
+  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-pilot": "clients", "sec-client-followup": "clients", "sec-followup": "people", "sec-team": "people" };
   const goTo = (id: string, light?: Light | null) => {
     if (light !== undefined) setLightFilter(light);
     setTab(TAB_OF[id] ?? "overview");
@@ -508,32 +508,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div className="mix" role="img" aria-label={"Team status: " + statusMix.map((m) => `${m.label} ${m.n}`).join(", ")}>
           {statusMix.filter((m) => m.n > 0).map((m) => (
             <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
-          ))}
-        </div>
-      </section>
-
-      <section id="sec-people-client">
-        <h2>People by client</h2>
-        <div className="pgrid">
-          {health.filter((h) => h.engineers.length > 0).map((h) => (
-            <article key={h.key} className={`pc pc-${LIGHT_CLASS[h.light]}`}>
-              <header className="pc-head">
-                <h3>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</h3>
-                <span className="pc-count" title={`${h.engineers.length} people`}>{h.engineers.length}</span>
-              </header>
-              <ul className="pc-list">
-                {[...h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => (
-                  <li key={e.id}>
-                    <span className="avatar" aria-hidden="true">{e.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</span>
-                    <span className="who">
-                      <NameLink href={e.url}>{e.name}</NameLink>
-                      <small>{e.role || "—"}</small>
-                    </span>
-                    <Pill s={e.status} />
-                  </li>
-                ))}
-              </ul>
-            </article>
           ))}
         </div>
       </section>
