@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { Client, Engineer, LatestNote, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
-import { CLIENT_MEETINGS, MEETINGS_AS_OF, MEETINGS_SEARCHED_SINCE } from "@/lib/client-meetings";
+import { CLIENT_MEETINGS } from "@/lib/client-meetings";
 import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
 type Props = { owner: string; notes: Record<string, LatestNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
@@ -235,7 +235,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
       <section>
         <h2>Client meetings</h2>
-        <p className="hint">Last client contact per client, most recent first (Fathom, Google Calendar and Notion; searched since {fmtDate(MEETINGS_SEARCHED_SINCE)}). Snapshot as of {fmtDate(MEETINGS_AS_OF)}.</p>
         <div className="tw">
           <table>
             <thead>
