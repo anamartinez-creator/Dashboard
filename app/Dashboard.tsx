@@ -58,6 +58,12 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   const [lightFilter, setLightFilter] = useState<Light | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
+  // Summary cards jump to their section (client cards also set the color filter)
+  const goTo = (id: string, light?: Light | null) => {
+    if (light !== undefined) setLightFilter(light);
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  };
+
   // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
   // Dates come from the people: first start and last end among those in pilot.
   const pilotClients = useMemo(() => {
@@ -151,10 +157,10 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       <section>
         <h2>Client Status</h2>
         <div className="kpis">
-          <Kpi label="On track" value={lights.green} sub="Clients" />
-          <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} />
-          <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} />
-          <Kpi label="Pilot" value={pilotClients.length} sub="Clients" />
+          <Kpi label="On track" value={lights.green} sub="Clients" onClick={() => goTo("sec-clients", "green")} />
+          <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} onClick={() => goTo("sec-clients", "yellow")} />
+          <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} onClick={() => goTo("sec-clients", "red")} />
+          <Kpi label="Pilot" value={pilotClients.length} sub="Clients" onClick={() => goTo("sec-pilot")} />
           <Kpi label="Average score" value={avgScore} sub="Out of 100" />
         </div>
       </section>
@@ -162,13 +168,13 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       <section>
         <h2>People</h2>
         <div className="kpis">
-          <Kpi label="Total" value={counts.total} sub="People on your team" />
-          <Kpi label="Needs Attention" value={counts.attention} sub="People" flag={counts.attention > 0 ? "warn" : undefined} />
-          <Kpi label="High Risk" value={counts.highRisk} sub="People" flag={counts.highRisk > 0 ? "bad" : undefined} />
+          <Kpi label="Total" value={counts.total} sub="People on your team" onClick={() => goTo("sec-team")} />
+          <Kpi label="Needs Attention" value={counts.attention} sub="People" flag={counts.attention > 0 ? "warn" : undefined} onClick={() => goTo("sec-followup")} />
+          <Kpi label="High Risk" value={counts.highRisk} sub="People" flag={counts.highRisk > 0 ? "bad" : undefined} onClick={() => goTo("sec-followup")} />
         </div>
       </section>
 
-      <section>
+      <section id="sec-pilot">
         <h2>Clients in pilot period</h2>
         <div className="tw">
           <table>
@@ -201,7 +207,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         </div>
       </section>
 
-      <section>
+      <section id="sec-clients">
         <h2>Active Client Health</h2>
         <div className="legend">
           {([["green", "On track"], ["yellow", "Needs Attention"], ["red", "High Risk"]] as [Light, string][]).map(([l, label]) => (
@@ -257,7 +263,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         </div>
       </section>
 
-      <section>
+      <section id="sec-team">
         <h2>Team health</h2>
         <p className="hint">Your team only. People on two clients are counted once.</p>
         <div className="legend">
@@ -272,7 +278,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         </div>
       </section>
 
-      <section>
+      <section id="sec-followup">
         <h2>People who need follow-up</h2>
         <div className="tw">
           <table>
@@ -315,13 +321,19 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   );
 }
 
-function Kpi({ label, value, sub, flag }: { label: string; value: number | string; sub: string; flag?: "warn" | "bad" }) {
-  return (
-    <div className={`kpi ${flag ? "is-" + flag : ""}`}>
+function Kpi({ label, value, sub, flag, onClick }: { label: string; value: number | string; sub: string; flag?: "warn" | "bad"; onClick?: () => void }) {
+  const body = (
+    <>
       <span className="kpi-label">{label}</span>
       <span className="kpi-num">{value}</span>
       <span className="kpi-sub">{sub}</span>
-    </div>
+    </>
+  );
+  const cls = `kpi ${flag ? "is-" + flag : ""}`;
+  return onClick ? (
+    <button type="button" className={`${cls} kpi-link`} onClick={onClick} title="Click to see the details">{body}</button>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
 
