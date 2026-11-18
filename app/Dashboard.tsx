@@ -182,6 +182,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           <Kpi label="On track" value={lights.green} sub="Clients" />
           <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} />
           <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} />
+          <Kpi label="Pilot" value={pilotClients.length} sub="Clients" />
           <Kpi label="Average score" value={avgScore} sub="Out of 100" />
         </div>
       </section>
