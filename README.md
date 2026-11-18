@@ -2,6 +2,8 @@
 
 Dashboard del Master SDM Tracker de Notion: equipo, pilotos de 90 días, SOWs sin firmar y clientes que no están On track. Tiene un filtro por SDM y está protegido con contraseña.
 
+Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`).
+
 ## Qué necesitas
 
 1. **Una integración de Notion**
@@ -10,14 +12,24 @@ Dashboard del Master SDM Tracker de Notion: equipo, pilotos de 90 días, SOWs si
    - En Notion, abre la página **Master SDM Tracker**, ve a `•••` → **Connections** y agrega la integración. Así puede leer las bases que están dentro.
 
 2. **Subirlo a GitHub**
-   - Crea un repo **privado** (por ejemplo `sdm-status`) y sube esta carpeta.
+   - Usa un repo **privado** y sube todo el contenido de esta carpeta, incluidas `app/`, `lib/` y los archivos que empiezan con punto (`.gitignore`, `.env.example`). La carga desde la web de GitHub suele omitirlos; es mejor usar `git push`:
+
+     ```bash
+     git remote add origin https://github.com/<usuario>/<repo>.git
+     git push -u origin main
+     ```
+   - Nunca subas `.env` ni `.env.local`. Ya están en `.gitignore`.
 
 3. **Importarlo en Vercel**
    - En Vercel: **Add New → Project**, elige el repo. Vercel detecta Next.js solo.
-   - En **Environment Variables**, agrega:
-     - `NOTION_TOKEN` = el token de la integración
-     - `DASHBOARD_PASSWORD` = la contraseña que quieras compartir
-   - Dale **Deploy**.
+   - En **Settings → Environment Variables**, agrega las dos variables (para Production, Preview y Development):
+
+     | Variable | Valor |
+     | --- | --- |
+     | `NOTION_TOKEN` | el token `ntn_...` de la integración |
+     | `DASHBOARD_PASSWORD` | la contraseña que quieras compartir |
+
+   - Dale **Deploy**. Si agregas o cambias variables después, haz **Redeploy**: solo aplican a deploys nuevos.
 
 Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser cualquiera; lo que importa es la contraseña.
 
@@ -35,8 +47,18 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
+Para comprobar que compila antes de subir: `npm run build`.
+
+## Problemas comunes
+
+- **El deploy falla por "vulnerable version of Next.js"**: actualiza `next` y `react` a una versión con parche (ver `package.json`), haz commit y push, y redeploy sin build cache.
+- **Falta `NOTION_TOKEN` o `DASHBOARD_PASSWORD`**: agrégalas en Vercel (paso 3) y haz Redeploy.
+- **La página sale vacía o con error de Notion (401/404)**: la integración no está conectada a la página Master SDM Tracker (`•••` → **Connections**), o el token es incorrecto.
+- **Falta una columna o dato**: si renombraron una propiedad en Notion, ajústala en `lib/notion.ts`.
+
 ## Archivos
 
 - `lib/notion.ts`: lee Notion y decide qué campos se usan. Si renombran una propiedad en Notion, se ajusta aquí.
 - `app/Dashboard.tsx`: la página con el filtro, las tablas y la gráfica.
 - `middleware.ts`: la contraseña.
+- `.env.example`: plantilla de las variables de entorno.
