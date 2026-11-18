@@ -57,8 +57,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   // Interactivity for Active Client Health: filter by color, pick a client
   const [lightFilter, setLightFilter] = useState<Light | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [teamQuery, setTeamQuery] = useState("");
-  const [teamDetails, setTeamDetails] = useState(false);
   const pickClient = (key: string) => {
     setSelected((cur) => (cur === key ? null : key));
     document.getElementById(`row-${key}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -115,22 +113,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   // Only clients with alerts get listed under the chart (plus the one picked in the chart)
   const alertRows = useMemo(() => visibleHealth.filter((h) => h.reasons.length > 0 || h.light !== "green" || h.key === selected), [visibleHealth, selected]);
 
-  // Status board: people grouped by their own status. Each chip shows the client(s), named as
-  // in Active Clients Status. Whoever needs help comes first.
-  const STATUS_ORDER = ["High Risk", "Needs Attention", "New Hire", "Hiring", "On track"];
-  const board = useMemo(() => {
-    const q = teamQuery.trim().toLowerCase();
-    const clientLabel = (label: string) => health.find((h) => sameClient(h.name, label))?.name ?? label;
-    const people = mine
-      .map((e) => ({ e, clients: (e.clients.length ? e.clients : ["No client"]).map(clientLabel) }))
-      .filter(({ e, clients }) => !q || `${e.name} ${e.role} ${clients.join(" ")}`.toLowerCase().includes(q))
-      .sort((x, y) => x.clients.join().localeCompare(y.clients.join()) || x.e.name.localeCompare(y.e.name));
-    const by = new Map<string, typeof people>();
-    for (const p of people) by.set(p.e.status || "No status", [...(by.get(p.e.status || "No status") ?? []), p]);
-    const extra = Array.from(by.keys()).filter((k) => !STATUS_ORDER.includes(k)).sort();
-    const keep = (k: string) => by.has(k) || (!q && ["High Risk", "Needs Attention", "New Hire", "On track"].includes(k));
-    return [...STATUS_ORDER, ...extra].filter(keep).map((status) => ({ status, people: by.get(status) ?? [] }));
-  }, [mine, health, teamQuery]);
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -200,7 +182,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
             <ul>
               {alertRows.map((h) => (
                 <li key={h.key} id={`row-${h.key}`} className={selected === h.key ? "is-selected" : ""}>
-                  <span className="alert-name"><LightPill light={h.light} /> {h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</span>
+                  <span className="alert-name"><LightPill light={h.light} /> {h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name} <span className="muted">· {headcount(h)}</span></span>
                   {h.reasons.length === 0 ? (
                     <span className="muted">No alerts</span>
                   ) : (
@@ -258,16 +240,14 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Client</th><th>People in pilot</th><th>Start</th><th>End</th><th>Status</th></tr>
+              <tr><th>Client</th><th className="center">Headcount</th><th>Start</th><th>End</th><th>Status</th></tr>
             </thead>
             <tbody>
               {pilotClients.length === 0 && <EmptyRow cols={5} text="No clients are in a pilot period." />}
               {pilotClients.map((p) => (
                 <tr key={p.h.key}>
                   <td>{p.h.url ? <NameLink href={p.h.url}>{p.h.name}</NameLink> : p.h.name}</td>
-                  <td className="wide">
-                    {p.ppl.length === 0 ? <span className="muted">No dates in Notion</span> : <><b>{p.ppl.length}</b> <span className="muted">· {p.ppl.map((e) => e.name).join(", ")}</span></>}
-                  </td>
+                  <td className="center">{headcount(p.h) || "—"}</td>
                   <td>{range(p.start, p.startLast)}</td>
                   <td>{range(p.endFirst, p.end)}</td>
                   <td>
@@ -337,42 +317,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         </div>
       </section>
 
-      <section>
-        <h2>Team by status</h2>
-        <div className="team-tools">
-          <input
-            type="search" className="team-search" placeholder="Search person, role or client"
-            value={teamQuery} onChange={(e) => setTeamQuery(e.target.value)} aria-label="Search the team"
-          />
-          <label className="team-toggle">
-            <input type="checkbox" checked={teamDetails} onChange={(e) => setTeamDetails(e.target.checked)} /> Show details (role, 1:1, start, country)
-          </label>
-        </div>
-        {board.length === 0 && <p className="hint">{teamQuery ? "No matches." : "Nobody assigned."}</p>}
-        <div className="board">
-          {board.map((col) => (
-            <div className="board-col" key={col.status}>
-              <div className="board-head">
-                <Pill s={col.status} />
-                <span className="count">{col.people.length}</span>
-              </div>
-              {col.people.length === 0 && <p className="board-empty">None</p>}
-              {col.people.map(({ e, clients }) => (
-                <div className="chip-card" key={e.id}>
-                  <NameLink href={e.url}>{e.name}</NameLink>
-                  <span className="chip-client">{clients.join(", ")}</span>
-                  {teamDetails && (
-                    <span className="chip-detail">
-                      {e.role || "—"}<br />1:1 {e.cadence ?? "not set"} · Start {fmtDate(e.startDate)} · {e.location || "—"}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
       <footer className="foot">
         Data from Notion · Master SDM Tracker · updated{" "}
         {new Date(loadedAt).toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
@@ -391,6 +335,9 @@ function Kpi({ label, value, sub, flag }: { label: string; value: number | strin
     </div>
   );
 }
+
+// People on the client: the engineers found in Notion, else the headcount typed on the client page
+const headcount = (h: ClientHealth) => h.engineers.length || h.headcount || 0;
 
 function EmptyRow({ cols, text }: { cols: number; text: string }) {
   return (
@@ -449,6 +396,7 @@ function HealthChart({ all, rows, filter, onFilter, selected, onPick }: {
               <span className={`hbar-fill seg-${LIGHT_CLASS[h.light]}`} style={{ width: `${h.score}%` }} />
             </span>
             <span className="hbar-num">{h.score}</span>
+            <span className="hbar-people">{headcount(h)} {headcount(h) === 1 ? "person" : "people"}</span>
           </button>
         ))}
       </div>

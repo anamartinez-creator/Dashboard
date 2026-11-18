@@ -188,15 +188,6 @@ tr.is-selected td:first-child { border-left: 3px solid var(--cyan); }
 .person-role { font-size: 12px; color: var(--muted); }
 .person-detail { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
 
-/* Team by status: board */
-.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: start; }
-.board-col { background: var(--tint); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-.board-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
-.board-head .count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.board-empty { margin: 0; font-size: 12px; color: var(--muted); }
-.chip-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
-.chip-client { font-size: 12px; color: var(--blue); font-weight: 500; }
-.chip-detail { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
 /* Active client health: chart + alerts */
 .hchart { grid-template-columns: 1fr; gap: 14px; }
@@ -208,3 +199,6 @@ tr.is-selected td:first-child { border-left: 3px solid var(--cyan); }
 .alerts > ul > li.is-selected { background: var(--tint); box-shadow: inset 3px 0 0 var(--cyan); }
 .alert-name { display: flex; align-items: center; gap: 8px; }
 @media (max-width: 600px) { .alerts > ul > li { grid-template-columns: 1fr; } }
+
+.hbar { grid-template-columns: minmax(90px, 160px) 1fr 3ch 9ch; }
+.hbar-people { font-size: 12px; color: var(--muted); text-align: left; white-space: nowrap; }
