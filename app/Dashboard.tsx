@@ -167,7 +167,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </div>
 
       <section>
-        <h2>Client health</h2>
+        <h2>Active Client Health</h2>
         <p className="hint">
           Clients outside the pilot period. Red first, then yellow. Red: High Risk, SOW Pending or expired pilot. Yellow: Needs Attention, unsigned SOW, pilot ending in {PILOT_WARN_DAYS} days or less, or people without a 1:1 cadence.
           The score (0 to 100) orders clients within each color.
@@ -175,7 +175,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Client</th><th>Health</th><th>Score</th><th>Notion status</th><th>People</th><th>Reasons</th></tr>
+              <tr><th>Client</th><th>Health</th><th>Score</th><th>Notion status</th><th className="center">People</th><th>Reasons</th></tr>
             </thead>
             <tbody>
               {shownHealth.length === 0 && <EmptyRow cols={6} text="No clients on your team." />}
@@ -185,7 +185,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   <td><LightPill light={h.light} /></td>
                   <td><ScoreBar h={h} /></td>
                   <td className="muted">{h.status || "—"}</td>
-                  <td className="num">{h.engineers.length || h.headcount || "—"}</td>
+                  <td className="center">{h.engineers.length || h.headcount || "—"}</td>
                   <td className="wide">
                     {h.reasons.length === 0 ? (
                       <span className="muted">No alerts</span>

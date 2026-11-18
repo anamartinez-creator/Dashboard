@@ -137,3 +137,5 @@ td.empty { color: var(--muted); font-size: 12px; }
 .note .reasons { margin-top: 6px; }
 .note .note-head { margin-top: 8px; }
 .note .reasons li { padding-left: 14px; }
+
+th.center, td.center { text-align: center; }
