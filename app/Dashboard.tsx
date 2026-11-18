@@ -326,7 +326,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                           {staleTxt && <li className="r-yellow">{staleTxt}</li>}
                           {why.length === 0 && !staleTxt && <li className="r-info">Nothing flagged.</li>}
                         </ul>
-                        {r.m?.notes && r.ago !== null && r.ago <= 31 && <div className="note"><span className="note-head">Latest comment · {fmtDate(r.m.date)}</span><p>{r.m.notes.comment}</p></div>}
+                        {r.m?.notes && <div className="note"><span className="note-head">Latest comment · {fmtDate(r.m.date)}</span><p>{r.m.notes.comment}</p></div>}
                       </article>
                     );
                   })}
@@ -348,8 +348,8 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   </div>
                   {openRow.pilotInfo && <p className="drawer-line"><span>Pilot period</span>{range(openRow.pilotInfo.start, openRow.pilotInfo.end)}</p>}
                   {openRow.m && <p className="drawer-line"><span>Last contact</span>{fmtDate(openRow.m.date)}</p>}
-                  {openRow.m?.notes && openRow.ago !== null && openRow.ago <= 31 && (
-                    <div className="note"><span className="note-head">Latest comment</span><p>{openRow.m.notes.comment}</p></div>
+                  {openRow.m?.notes && (
+                    <div className="note"><span className="note-head">Latest comment · {fmtDate(openRow.m.date)}</span><p>{openRow.m.notes.comment}</p></div>
                   )}
                   {openRow.h.reasons.some((x) => x.level !== "info") && (
                     <>
