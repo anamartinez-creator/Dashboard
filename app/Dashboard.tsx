@@ -52,7 +52,6 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
   }, [mine]);
 
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
-  const shownHealth = health;
 
   // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
   // Dates come from the people: first start and last end among those in pilot.
@@ -61,7 +60,9 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
     return health
       .map((h) => {
         const ppl = h.engineers.filter((e) => e.pilotTracked && e.startDate && e.pilotEnd);
-        if (h.status !== "Pilot" && ppl.length === 0) return null;
+        // Pilot client: status Pilot in Notion, or everyone on it is still in their 90 days
+        const allNew = h.engineers.length > 0 && ppl.length === h.engineers.length;
+        if (h.status !== "Pilot" && !allNew) return null;
         const starts = ppl.map((e) => e.startDate as string).sort();
         const ends = ppl.map((e) => e.pilotEnd as string).sort();
         let start = starts[0] ?? null, startLast = starts[starts.length - 1] ?? null;
@@ -81,6 +82,12 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => (a.end ?? "9999").localeCompare(b.end ?? "9999") || a.h.name.localeCompare(b.h.name));
   }, [health, today]);
+
+  // Clients in pilot have their own section; the health list is for the rest
+  const shownHealth = useMemo(() => {
+    const inPilot = new Set(pilotClients.map((p) => p.h.key));
+    return health.filter((h) => !inPilot.has(h.key));
+  }, [health, pilotClients]);
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -134,7 +141,7 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
       <section>
         <h2>Health por cliente</h2>
         <p className="hint">
-          Primero los rojos, luego los amarillos. Rojo: High Risk, SOW Pending o piloto vencido. Amarillo: Needs Attention, SOW sin firmar, piloto que termina en {PILOT_WARN_DAYS} días o menos, o personas sin cadencia de 1:1.
+          Clientes fuera de periodo de piloto. Primero los rojos, luego los amarillos. Rojo: High Risk, SOW Pending o piloto vencido. Amarillo: Needs Attention, SOW sin firmar, piloto que termina en {PILOT_WARN_DAYS} días o menos, o personas sin cadencia de 1:1.
           El score (0 a 100) ordena dentro de cada color.
         </p>
         <div className="tw">
@@ -172,7 +179,7 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
       <section>
         <h2>Clientes en periodo de piloto</h2>
         <p className="hint">
-          Clientes con status Pilot en Notion o con personas en sus primeros 90 días. Inicio y fin salen de la fecha de inicio y de Pilot End de cada persona
+          Clientes con status Pilot en Notion o cuyas personas están todas en sus primeros 90 días. No aparecen en Health por cliente. Inicio y fin salen de la fecha de inicio y de Pilot End de cada persona
           (si falta Pilot End, inicio + 90 días). Si las personas entran en fechas distintas se muestra el rango. VertexOne usa la fecha de inicio del cliente (16 nov) + 90 días; se cambia en lib/pilots.ts.
         </p>
         <div className="tw">
