@@ -95,9 +95,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     const inPilot = new Set(pilotClients.map((p) => p.h.key));
     const rows = health.map((h) => {
       const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
-      const mix = new Map<string, number>();
-      for (const e of h.engineers) mix.set(e.status || "No status", (mix.get(e.status || "No status") ?? 0) + 1);
-      return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key), mix: Array.from(mix.entries()) };
+      return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key) };
     });
     return [...rows.filter((r) => !r.pilot), ...rows.filter((r) => r.pilot).sort((a, b) => a.h.name.localeCompare(b.h.name))];
   }, [health, pilotClients, today]);
@@ -171,69 +169,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <section>
-        <h2>Active Client Health</h2>
-        <div className="legend">
-          {([["green", "On track"], ["yellow", "Needs Attention"], ["red", "High Risk"]] as [Light, string][]).map(([l, label]) => (
-            <button type="button" key={l} className={`chip${lightFilter === l ? " on" : ""}`} onClick={() => setLightFilter(lightFilter === l ? null : l)} aria-pressed={lightFilter === l}>
-              <i className={`seg-${LIGHT_CLASS[l]}`} />{label}
-            </button>
-          ))}
-          {lightFilter && <button type="button" className="chip clear" onClick={() => setLightFilter(null)}>Clear filter</button>}
-        </div>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr>
-                <th>Client</th><th className="center">Health</th><th className="center">People</th><th>Team status</th>
-                <th>Last contact</th><th>Why and latest comment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.length === 0 && <EmptyRow cols={6} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
-              {visibleRows.map(({ h, m, ago, pilot, mix }) => {
-                const open = selected === h.key;
-                const recent = m?.notes && ago !== null && ago <= 31;
-                return (
-                  <tr key={h.key} className={`clickable${open ? " is-selected" : ""}`} onClick={() => setSelected((cur) => (cur === h.key ? null : h.key))}>
-                    <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
-                    <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <LightPill light={h.light} />}</td>
-                    <td className="center">{headcount(h) || "—"}</td>
-                    <td className="muted">{mix.length ? mix.map(([st, n]) => `${n} ${st}`).join(" · ") : "—"}</td>
-                    <td>
-                      {m ? (
-                        <>
-                          {fmtDate(m.date)}
-                          <div><Pill s={`${ago} d ago`} className={ago !== null && ago > 30 ? "warn" : "info"} /></div>
-                        </>
-                      ) : <span className="muted">Not found</span>}
-                    </td>
-                    <td className="wide">
-                      {h.reasons.length === 0 ? (
-                        <span className="muted">No alerts</span>
-                      ) : (
-                        <ul className="reasons">
-                          {(open ? h.reasons : h.reasons.slice(0, 1)).map((r, i) => (
-                            <li key={i} className={`r-${r.level}`}>{r.text}</li>
-                          ))}
-                          {!open && h.reasons.length > 1 && <li className="r-info">+{h.reasons.length - 1} more (click the row)</li>}
-                        </ul>
-                      )}
-                      {recent && m?.notes && (
-                        <div className="note">
-                          <span className="note-head">Comment · {fmtDate(m.date)}</span>
-                          <p>{m.notes.comment}</p>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section>
         <h2>Clients in pilot period</h2>
         <div className="tw">
           <table>
@@ -261,6 +196,62 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Active Client Health</h2>
+        <div className="legend">
+          {([["green", "On track"], ["yellow", "Needs Attention"], ["red", "High Risk"]] as [Light, string][]).map(([l, label]) => (
+            <button type="button" key={l} className={`chip${lightFilter === l ? " on" : ""}`} onClick={() => setLightFilter(lightFilter === l ? null : l)} aria-pressed={lightFilter === l}>
+              <i className={`seg-${LIGHT_CLASS[l]}`} />{label}
+            </button>
+          ))}
+          {lightFilter && <button type="button" className="chip clear" onClick={() => setLightFilter(null)}>Clear filter</button>}
+        </div>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th><th className="center">Health</th><th className="center">People</th>
+                <th>Last contact</th><th className="center">Days ago</th><th>Why and latest comment</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.length === 0 && <EmptyRow cols={6} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
+              {visibleRows.map(({ h, m, ago, pilot }) => {
+                const open = selected === h.key;
+                const recent = m?.notes && ago !== null && ago <= 31;
+                return (
+                  <tr key={h.key} className={`clickable${open ? " is-selected" : ""}`} onClick={() => setSelected((cur) => (cur === h.key ? null : h.key))}>
+                    <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
+                    <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <LightPill light={h.light} />}</td>
+                    <td className="center">{headcount(h) || "—"}</td>
+                    <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
+                    <td className="center">{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d ago`} className={ago > 30 ? "warn" : "info"} />}</td>
+                    <td className="wide">
+                      {h.reasons.length === 0 ? (
+                        <span className="muted">No alerts</span>
+                      ) : (
+                        <ul className="reasons">
+                          {(open ? h.reasons : h.reasons.slice(0, 1)).map((r, i) => (
+                            <li key={i} className={`r-${r.level}`}>{r.text}</li>
+                          ))}
+                          {!open && h.reasons.length > 1 && <li className="r-info">+{h.reasons.length - 1} more (click the row)</li>}
+                        </ul>
+                      )}
+                      {recent && m?.notes && (
+                        <div className="note">
+                          <span className="note-head">Comment · {fmtDate(m.date)}</span>
+                          <p>{m.notes.comment}</p>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
