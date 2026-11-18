@@ -71,7 +71,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   }, []);
 
   // Summary cards jump to their tab and section (client cards also set the color filter)
-  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-pilot": "clients", "sec-client-followup": "clients", "sec-followup": "people", "sec-team": "people" };
+  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-followup": "people", "sec-team": "people" };
   const goTo = (id: string, light?: Light | null) => {
     if (light !== undefined) setLightFilter(light);
     setTab(TAB_OF[id] ?? "overview");
@@ -394,113 +394,19 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         {tab === "clients" && (
           <>
       <section id="sec-clients">
-        <h2>Active Client Health</h2>
-        <div className="legend">
-          {([["green", "On track"], ["yellow", "Needs Attention"], ["red", "High Risk"]] as [Light, string][]).map(([l, label]) => (
-            <button type="button" key={l} className={`chip${lightFilter === l ? " on" : ""}`} onClick={() => setLightFilter(lightFilter === l ? null : l)} aria-pressed={lightFilter === l}>
-              <i className={`seg-${LIGHT_CLASS[l]}`} />{label}
-            </button>
-          ))}
-          {lightFilter && <button type="button" className="chip clear" onClick={() => setLightFilter(null)}>Clear filter</button>}
-        </div>
+        <h2>Clients</h2>
         <div className="tw">
           <table>
             <thead>
-              <tr>
-                <th>Client</th><th className="center">Health</th><th className="center">People</th><th>Pilot period</th>
-                <th>Last contact</th><th className="center">Days ago</th><th>Why and latest comment</th>
-              </tr>
+              <tr><th>Client</th><th className="center">Status</th><th className="center">People</th></tr>
             </thead>
             <tbody>
-              {visibleRows.length === 0 && <EmptyRow cols={7} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
-              {visibleRows.map(({ h, m, ago, pilot, pilotInfo }) => {
-                const open = selected === h.key;
-                const recent = m?.notes && ago !== null && ago <= 31;
-                return (
-                  <tr key={h.key} className={`clickable${open ? " is-selected" : ""}`} onClick={() => setSelected((cur) => (cur === h.key ? null : h.key))}>
-                    <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
-                    <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <LightPill light={h.light} />}</td>
-                    <td className="center">{headcount(h) || "—"}</td>
-                    <td>
-                      {pilotInfo ? (
-                        <>
-                          {range(pilotInfo.start, pilotInfo.end)}
-                          <div><PilotTag p={pilotInfo} /></div>
-                        </>
-                      ) : <span className="muted">—</span>}
-                    </td>
-                    <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
-                    <td className="center">{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d ago`} className={ago > 30 ? "warn" : "info"} />}</td>
-                    <td className="wide">
-                      {h.reasons.length === 0 ? (
-                        <span className="muted">No alerts</span>
-                      ) : (
-                        <ul className="reasons">
-                          {(open ? h.reasons : h.reasons.slice(0, 1)).map((r, i) => (
-                            <li key={i} className={`r-${r.level}`}>{r.text}</li>
-                          ))}
-                          {!open && h.reasons.length > 1 && <li className="r-info">+{h.reasons.length - 1} more (click the row)</li>}
-                        </ul>
-                      )}
-                      {recent && m?.notes && (
-                        <div className="note">
-                          <span className="note-head">Comment · {fmtDate(m.date)}</span>
-                          <p>{m.notes.comment}</p>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="sec-pilot">
-        <h2>Clients in pilot period</h2>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr><th>Client</th><th className="center">Headcount</th><th>Start</th><th>End</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {pilotClients.length === 0 && <EmptyRow cols={5} text="No clients are in a pilot period." />}
-              {pilotClients.map((p) => (
-                <tr key={p.h.key}>
-                  <td>{p.h.url ? <NameLink href={p.h.url}>{p.h.name}</NameLink> : p.h.name}</td>
-                  <td className="center">{headcount(p.h) || "—"}</td>
-                  <td>{range(p.start, p.startLast)}</td>
-                  <td>{range(p.endFirst, p.end)}</td>
-                  <td>
-                    <PilotTag p={p} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="sec-client-followup">
-        <h2>Clients who need follow-up</h2>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr><th className="center">Client</th><th className="center">Priority</th><th className="center">People</th><th>Last contact</th><th>Reasons</th></tr>
-            </thead>
-            <tbody>
-              {clientFlags.length === 0 && <EmptyRow cols={5} text="No clients need follow-up." />}
-              {clientFlags.map((f) => (
-                <tr key={f.h.key}>
-                  <td className="center">
-                    {f.h.url ? <NameLink href={f.h.url}>{f.h.name}</NameLink> : f.h.name}
-                    {f.pilot && <> <Pill s="Pilot" className="info" /></>}
-                  </td>
-                  <td className="center"><Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} /></td>
-                  <td className="center">{headcount(f.h) || "—"}</td>
-                  <td className={f.m ? "" : "muted"}>{f.m ? `${fmtDate(f.m.date)} · ${f.ago} d ago` : "Not found"}</td>
-                  <td className="wide">{f.reasons.join(" · ")}</td>
+              {clientRows.length === 0 && <EmptyRow cols={3} text="No clients on your team." />}
+              {clientRows.map(({ h, pilot }) => (
+                <tr key={h.key}>
+                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
+                  <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <Pill s={LIGHT_LABEL[h.light]} className={LIGHT_CLASS[h.light]} />}</td>
+                  <td className="center">{headcount(h) || "—"}</td>
                 </tr>
               ))}
             </tbody>
