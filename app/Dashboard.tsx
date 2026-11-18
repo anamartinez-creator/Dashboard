@@ -318,16 +318,16 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Person</th><th>Priority</th><th>Client</th><th>SDM</th><th>Reasons</th></tr>
+              <tr><th className="center">Person</th><th className="center">Priority</th><th className="center">Client</th><th className="center">SDM</th><th>Reasons</th></tr>
             </thead>
             <tbody>
               {flags.length === 0 && <EmptyRow cols={5} text="Nobody needs follow-up." />}
               {flags.map((f) => (
                 <tr key={f.engineer.id}>
-                  <td><NameLink href={f.engineer.url}>{f.engineer.name}</NameLink></td>
-                  <td><Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} /></td>
-                  <td>{f.engineer.clients.join(", ") || "—"}</td>
-                  <td className="muted">{f.engineer.sdms.join(", ") || "—"}</td>
+                  <td className="center"><NameLink href={f.engineer.url}>{f.engineer.name}</NameLink></td>
+                  <td className="center"><Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} /></td>
+                  <td className="center">{f.engineer.clients.join(", ") || "—"}</td>
+                  <td className="center muted">{f.engineer.sdms.join(", ") || "—"}</td>
                   <td className="wide">
                     {f.reasons.join(" · ")}
                     {notes[f.engineer.id] && (
