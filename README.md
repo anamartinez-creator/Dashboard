@@ -1,6 +1,6 @@
 # Health del delivery SDM
 
-Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, salud del equipo, personas que requieren seguimiento y pilotos de 90 días. Tiene un filtro por SDM y está protegido con contraseña.
+Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, salud del equipo, personas que requieren seguimiento y pilotos de 90 días. Muestra solo el equipo de un SDM (Ana Martinez por defecto) y deja fuera a Customer Success. Está protegido con contraseña.
 
 Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`).
 
@@ -32,6 +32,10 @@ Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`)
    - Dale **Deploy**. Si agregas o cambias variables después, haz **Redeploy**: solo aplican a deploys nuevos.
 
 Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser cualquiera; lo que importa es la contraseña.
+
+## Alcance
+
+El dashboard solo muestra a las personas asignadas a Ana Martinez (columna `Assigned to`) y los clientes donde trabajan. Los clientes de Customer Success y todo lo de otros SDMs se descartan en el servidor, antes de llegar al navegador. Para usar otro SDM, agrega en Vercel la variable opcional `SDM_OWNER` con el nombre exacto como aparece en Notion.
 
 ## Reglas de health
 
@@ -85,7 +89,7 @@ Para comprobar que compila antes de subir: `npm run build`.
 
 - `lib/notion.ts`: lee Notion y decide qué campos se usan. Si renombran una propiedad en Notion, se ajusta aquí.
 - `lib/health.ts`: reglas del semáforo y del score.
-- `app/Dashboard.tsx`: la página con el filtro, las tablas y las gráficas.
+- `app/Dashboard.tsx`: la página con las tablas y las gráficas.
 - `middleware.ts`: la contraseña.
 - `app/api/notion-webhook/route.ts`: recibe los avisos de Notion y refresca los datos.
 - `app/api/refresh/route.ts`: el botón "Actualizar ahora".

@@ -1,13 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Client, Engineer, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { computeClientHealth, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
-type Props = { engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
-
-const ALL = "Todos";
+type Props = { owner: string; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
 const tone = (s: string) =>
   ({ "On track": "ok", Signed: "ok", "Needs Attention": "warn", Sent: "warn", "To confirm": "warn", "High Risk": "bad", Pending: "bad" } as Record<string, string>)[s] ?? "info";
@@ -30,10 +28,8 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ engineers, sows, clients, loadedAt }: Props) {
-  const sdmNames = useMemo(() => Array.from(new Set(engineers.flatMap((e) => e.sdms))).sort(), [engineers]);
-  const [sdm, setSdm] = useState(ALL);
-  const mine = useMemo(() => engineers.filter((e) => sdm === ALL || e.sdms.includes(sdm)), [engineers, sdm]);
+export default function Dashboard({ owner, engineers, sows, clients, loadedAt }: Props) {
+  const mine = engineers;
 
   const counts = useMemo(() => {
     const c = { total: mine.length, onTrack: 0, attention: 0, highRisk: 0, onboarding: 0, noCadence: 0 };
@@ -57,10 +53,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
   );
 
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
-  const shownHealth = useMemo(
-    () => (sdm === ALL ? health : health.filter((h) => h.engineers.some((e) => e.sdms.includes(sdm)))),
-    [health, sdm]
-  );
+  const shownHealth = health;
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -99,17 +92,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
             <b>{flags.length}</b> de <b>{counts.total}</b> personas requieren seguimiento.
           </p>
         </div>
-        <label className="filter">
-          SDM
-          <select value={sdm} onChange={(e) => setSdm(e.target.value)}>
-            <option value={ALL}>{ALL}</option>
-            {sdmNames.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+        <p className="owner">SDM: <b>{owner}</b><br />Sin Customer Success</p>
       </header>
 
       <div className="kpis">
@@ -133,7 +116,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
               <tr><th>Cliente</th><th>Health</th><th>Score</th><th>Status en Notion</th><th>Personas</th><th>Motivos</th></tr>
             </thead>
             <tbody>
-              {shownHealth.length === 0 && <EmptyRow cols={6} text="Ningún cliente para este SDM." />}
+              {shownHealth.length === 0 && <EmptyRow cols={6} text="Ningún cliente en tu equipo." />}
               {shownHealth.map((h) => (
                 <tr key={h.key}>
                   <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
@@ -161,7 +144,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
 
       <section>
         <h2>Salud del equipo</h2>
-        <p className="hint">Según el SDM elegido. Las personas en dos clientes cuentan una sola vez.</p>
+        <p className="hint">Solo tu equipo. Las personas en dos clientes cuentan una sola vez.</p>
         <div className="legend">
           {statusMix.map((m) => (
             <span key={m.label}><i className={m.cls} />{m.label} ({m.n})</span>
@@ -183,7 +166,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
               <tr><th>Persona</th><th>Prioridad</th><th>Cliente</th><th>SDM</th><th>Motivos</th></tr>
             </thead>
             <tbody>
-              {flags.length === 0 && <EmptyRow cols={5} text="Nadie requiere seguimiento para este SDM." />}
+              {flags.length === 0 && <EmptyRow cols={5} text="Nadie requiere seguimiento." />}
               {flags.map((f) => (
                 <tr key={f.engineer.id}>
                   <td><NameLink href={f.engineer.url}>{f.engineer.name}</NameLink></td>
@@ -207,7 +190,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
               <tr><th>Persona</th><th>Cliente</th><th>Inicio</th><th>Fin del piloto</th><th>Días</th></tr>
             </thead>
             <tbody>
-              {pilots.length === 0 && <EmptyRow cols={5} text="Ningún piloto termina cerca de hoy para este SDM." />}
+              {pilots.length === 0 && <EmptyRow cols={5} text="Ningún piloto termina cerca de hoy." />}
               {pilots.map((e) => {
                 const d = e.pilotDaysLeft ?? 0;
                 return (
@@ -239,7 +222,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
               <tr><th>Persona</th><th>Status</th><th>Cliente</th><th>Rol</th><th>SDM</th><th>1:1</th><th>País</th></tr>
             </thead>
             <tbody>
-              {mine.length === 0 && <EmptyRow cols={7} text="Nadie asignado a este SDM." />}
+              {mine.length === 0 && <EmptyRow cols={7} text="Nadie asignado." />}
               {mine.map((e) => (
                 <tr key={e.id}>
                   <td><NameLink href={e.url}>{e.name}</NameLink></td>

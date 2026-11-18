@@ -2,6 +2,8 @@
 // Only the fields the dashboard shows leave this file: Salary Rate, Equipment,
 // Notes and similar fields are never sent to the browser.
 
+import { sameClient } from "./health";
+
 const NOTION_VERSION = "2025-09-03";
 
 // Data sources inside the Master SDM Tracker page
@@ -146,11 +148,22 @@ export function mapClients(pages: NotionPage[]): Client[] {
     .sort((a, b) => order(a.status) - order(b.status) || a.client.localeCompare(b.client));
 }
 
+// This dashboard covers one SDM's side only (Ana Martinez by default; override
+// with the SDM_OWNER env var) and leaves out Customer Success clients.
+// Everything else is dropped here, so it never reaches the browser.
+const OWNER = process.env.SDM_OWNER || "Ana Martinez";
+const EXCLUDED_UNITS = ["Customer Success"];
+
 export async function loadTracker() {
   const [e, s, c] = await Promise.all([
     queryAll(DATA_SOURCES.engineers),
     queryAll(DATA_SOURCES.sows),
     queryAll(DATA_SOURCES.clients),
   ]);
-  return { engineers: mapEngineers(e), sows: mapSows(s), clients: mapClients(c), loadedAt: new Date().toISOString(), today: todayIso() };
+  const engineers = mapEngineers(e).filter((x) => x.sdms.includes(OWNER));
+  const clients = mapClients(c).filter(
+    (x) => x.client && !EXCLUDED_UNITS.includes(x.unit) && engineers.some((p) => p.clients.some((n) => sameClient(n, x.client)))
+  );
+  const sows = mapSows(s).filter((x) => clients.some((cl) => sameClient(x.client, cl.client)));
+  return { owner: OWNER, engineers, sows, clients, loadedAt: new Date().toISOString(), today: todayIso() };
 }
