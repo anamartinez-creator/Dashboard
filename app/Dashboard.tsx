@@ -395,8 +395,8 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           <>
       <section id="sec-clients">
         <h2>Clients</h2>
-        <div className="tw">
-          <table>
+        <div className="tw clients-tw">
+          <table className="clients-table">
             <thead>
               <tr><th>Client</th><th className="center">Status</th><th className="center">People</th></tr>
             </thead>
@@ -410,8 +410,14 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr><td>Total · {clientRows.length} clients</td><td /><td className="center">{clientRows.reduce((n, r) => n + headcount(r.h), 0)}</td></tr>
+            </tfoot>
           </table>
         </div>
+        {clientRows.reduce((n, r) => n + headcount(r.h), 0) !== counts.total && (
+          <p className="hint">{counts.total} unique people on the team; the total above counts someone once for each client they are on.</p>
+        )}
       </section>
           </>
         )}

@@ -419,3 +419,9 @@ h2.brief-title::before { display: none; }
 .mgroup-h.mg-ok::before { background: var(--ok); }
 .mgroup-h.mg-pilot::before { background: var(--cyan); }
 .mgroup-h span { min-width: 24px; height: 24px; padding: 0 8px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+
+.clients-tw { width: fit-content; max-width: 100%; min-width: min(100%, 520px); }
+.clients-table td, .clients-table th { padding-left: 20px; padding-right: 20px; }
+.clients-table td:first-child, .clients-table th:first-child { min-width: 220px; padding-right: 32px; }
+.clients-table th.center, .clients-table td.center { width: 1%; white-space: nowrap; }
+.clients-table tfoot td { background: linear-gradient(180deg, #eef3f7, #e5ecf1); font-weight: 700; color: var(--blue); border-top: 2px solid var(--blue); border-bottom: 0; }
