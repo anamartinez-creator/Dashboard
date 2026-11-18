@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Password protection for the whole site. The browser asks for a user and
-// password; any user name works, the password is DASHBOARD_PASSWORD.
+// The dashboard is open: anyone with the link can view it (search engines are told not to index it).
+// To bring the login back, set REQUIRE_PASSWORD=true and DASHBOARD_PASSWORD in Vercel and redeploy.
+// With it on, the browser asks for a user and password; any user name works.
 export function middleware(req: NextRequest) {
+  if (process.env.REQUIRE_PASSWORD !== "true") {
+    const res = NextResponse.next();
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return res;
+  }
   const password = process.env.DASHBOARD_PASSWORD;
   if (!password) {
     return new NextResponse("The DASHBOARD_PASSWORD variable is missing in Vercel.", { status: 500 });

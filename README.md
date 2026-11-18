@@ -1,6 +1,6 @@
 # Health del delivery SDM
 
-Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, clientes en periodo de piloto (inicio y fin), salud del equipo, personas que requieren seguimiento. Muestra solo el equipo de un SDM (Ana Martinez por defecto) y deja fuera a Customer Success. Está protegido con contraseña.
+Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, clientes en periodo de piloto (inicio y fin), salud del equipo, personas que requieren seguimiento. Muestra solo el equipo de un SDM (Ana Martinez por defecto) y deja fuera a Customer Success. Es de acceso abierto: cualquiera con el link puede verlo (no se indexa en buscadores). Para volver a pedir contraseña, ver "Contraseña" más abajo.
 
 Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`).
 
@@ -31,7 +31,9 @@ Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`)
 
    - Dale **Deploy**. Si agregas o cambias variables después, haz **Redeploy**: solo aplican a deploys nuevos.
 
-Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser cualquiera; lo que importa es la contraseña.
+Al abrir el link, el dashboard se ve directamente, sin usuario ni contraseña.
+
+**Contraseña (opcional).** Para volver a protegerlo, agrega en Vercel `REQUIRE_PASSWORD=true` y `DASHBOARD_PASSWORD` y haz Redeploy; el navegador pedirá usuario (cualquiera) y contraseña.
 
 ## Alcance
 
@@ -53,7 +55,7 @@ El score (0 a 100) empieza en 100 y resta puntos por cada motivo; sirve para ord
 
 - Los datos se leen de Notion en el servidor y se refrescan cada minuto como máximo. La página abierta se actualiza sola cada minuto, y el botón **Actualizar ahora** (al pie) fuerza una lectura nueva de Notion. Lo que cambies en el tracker aparece en el dashboard en ~1 minuto, sin redeploy.
 - Al navegador solo llegan los campos que muestra la página. **Salary Rate, Equipment, la columna Notes y las notas del SOW Tracker nunca salen del servidor.**
-- Excepción: para las personas que requieren seguimiento se muestra el comentario más reciente de la tabla *1:1 Notes* de su página en Notion (fecha, Health y Comments). El servidor omite las líneas cuya etiqueta sea Wellbeing, Health, Announcements, Family, Personal o Medical. Esa regla solo detecta líneas con etiqueta; si alguien escribe algo personal en un párrafo sin etiqueta, saldrá. Quien tenga la contraseña del dashboard ve estos comentarios.
+- Excepción: para las personas que requieren seguimiento se muestra el comentario más reciente de la tabla *1:1 Notes* de su página en Notion (fecha, Health y Comments). El servidor omite las líneas cuya etiqueta sea Wellbeing, Health, Announcements, Family, Personal o Medical. Esa regla solo detecta líneas con etiqueta; si alguien escribe algo personal en un párrafo sin etiqueta, saldrá. Con el acceso abierto, cualquiera que tenga el link ve estos comentarios.
 - La página no aparece en buscadores (`noindex`).
 
 ## Actualización instantánea con webhook (opcional)
