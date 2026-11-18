@@ -186,7 +186,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </header>
 
       <div className="kpis">
-        <Kpi label="Green clients" value={lights.green} sub="No alerts" />
+        <Kpi label="On track clients" value={lights.green} sub="No alerts" />
         <Kpi label="Yellow clients" value={lights.yellow} sub="Need follow-up" flag={lights.yellow > 0 ? "warn" : undefined} />
         <Kpi label="Red clients" value={lights.red} sub="Action needed" flag={lights.red > 0 ? "bad" : undefined} />
         <Kpi label="Average score" value={avgScore} sub="Out of 100" />
@@ -427,7 +427,7 @@ function EmptyRow({ cols, text }: { cols: number; text: string }) {
   );
 }
 
-const LIGHT_LABEL: Record<Light, string> = { green: "Verde", yellow: "Amarillo", red: "Rojo" };
+const LIGHT_LABEL: Record<Light, string> = { green: "On track", yellow: "Yellow", red: "Red" };
 const LIGHT_CLASS: Record<Light, string> = { green: "ok", yellow: "warn", red: "bad" };
 
 function LightPill({ light }: { light: Light }) {
@@ -464,7 +464,7 @@ function HealthChart({ all, rows, filter, onFilter, selected, onPick }: {
   if (all.length === 0) return null;
   const n = (l: Light) => all.filter((h) => h.light === l).length;
   const mix: { light: Light; label: string; count: number }[] = [
-    { light: "green", label: "Green", count: n("green") },
+    { light: "green", label: "On track", count: n("green") },
     { light: "yellow", label: "Yellow", count: n("yellow") },
     { light: "red", label: "Red", count: n("red") },
   ];
