@@ -24,6 +24,8 @@ export type Engineer = {
   startDate: string | null;
   pilotEnd: string | null;
   pilotDaysLeft: number | null;
+  // true for new hires or people with an explicit Pilot End: only they are judged on pilot dates
+  pilotTracked: boolean;
 };
 
 export type Sow = { id: string; url: string; client: string; status: string; nextStep: string };
@@ -96,12 +98,14 @@ export function mapEngineers(pages: NotionPage[], today = todayIso()): Engineer[
   return pages
     .map((p) => {
       const startDate = date(prop(p, "Start Date "));
-      const pilotEnd = date(prop(p, "Pilot End")) ?? (startDate ? addDays(startDate, 90) : null);
+      const explicitPilotEnd = date(prop(p, "Pilot End"));
+      const pilotEnd = explicitPilotEnd ?? (startDate ? addDays(startDate, 90) : null);
+      const status = text(prop(p, "Status"));
       return {
         id: p.id,
         url: p.url,
         name: text(prop(p, "Engineer")) || "Sin nombre",
-        status: text(prop(p, "Status")),
+        status,
         clients: multi(prop(p, "Client")),
         role: text(prop(p, "Role")),
         sdms: multi(prop(p, "Assigned to ")),
@@ -110,6 +114,7 @@ export function mapEngineers(pages: NotionPage[], today = todayIso()): Engineer[
         startDate,
         pilotEnd,
         pilotDaysLeft: pilotEnd ? daysBetween(today, pilotEnd) : null,
+        pilotTracked: status === "New Hire" || explicitPilotEnd !== null,
       };
     })
     .sort((a, b) => order(a.status) - order(b.status) || (a.clients[0] ?? "").localeCompare(b.clients[0] ?? "") || a.name.localeCompare(b.name));

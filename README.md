@@ -1,6 +1,6 @@
-# Estado de delivery SDM
+# Health del delivery SDM
 
-Dashboard del Master SDM Tracker de Notion: equipo, pilotos de 90 días, SOWs sin firmar y clientes que no están On track. Tiene un filtro por SDM y está protegido con contraseña.
+Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, salud del equipo, personas que requieren seguimiento y pilotos de 90 días. Tiene un filtro por SDM y está protegido con contraseña.
 
 Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`).
 
@@ -32,6 +32,18 @@ Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`)
    - Dale **Deploy**. Si agregas o cambias variables después, haz **Redeploy**: solo aplican a deploys nuevos.
 
 Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser cualquiera; lo que importa es la contraseña.
+
+## Reglas de health
+
+El semáforo de cada cliente es el peor de sus motivos. Las reglas están en `lib/health.ts` y se ajustan ahí.
+
+| Color | Cuándo |
+| --- | --- |
+| Rojo | Cliente o persona en High Risk, SOW en Pending, o piloto vencido de alguien que sigue como New Hire |
+| Amarillo | Cliente o persona en Needs Attention, SOW por confirmar o enviado sin firmar, piloto que termina en 14 días o menos, o personas sin cadencia de 1:1 |
+| Verde | Todo lo demás |
+
+El score (0 a 100) empieza en 100 y resta puntos por cada motivo; sirve para ordenar dentro de cada color. Los clientes se relacionan con personas y SOWs por nombre aunque se escriban distinto en Notion ("Proline Eng" y "Proline Engineering", "Vertex" y "VertexOne"). Los pilotos solo se evalúan para personas en New Hire o con `Pilot End` lleno.
 
 ## Cómo funciona
 
@@ -72,7 +84,8 @@ Para comprobar que compila antes de subir: `npm run build`.
 ## Archivos
 
 - `lib/notion.ts`: lee Notion y decide qué campos se usan. Si renombran una propiedad en Notion, se ajusta aquí.
-- `app/Dashboard.tsx`: la página con el filtro, las tablas y la gráfica.
+- `lib/health.ts`: reglas del semáforo y del score.
+- `app/Dashboard.tsx`: la página con el filtro, las tablas y las gráficas.
 - `middleware.ts`: la contraseña.
 - `app/api/notion-webhook/route.ts`: recibe los avisos de Notion y refresca los datos.
 - `app/api/refresh/route.ts`: el botón "Actualizar ahora".

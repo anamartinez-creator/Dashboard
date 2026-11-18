@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Client, Engineer, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
+import { computeClientHealth, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
 type Props = { engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
@@ -55,34 +56,47 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
     [mine]
   );
 
-  const byClient = useMemo(() => {
-    const m = new Map<string, { client: string; onTrack: number; attention: number; onboarding: number; total: number }>();
-    for (const e of mine) {
-      for (const c of e.clients.length ? e.clients : ["Sin cliente"]) {
-        const r = m.get(c) ?? { client: c, onTrack: 0, attention: 0, onboarding: 0, total: 0 };
-        if (e.status === "Needs Attention" || e.status === "High Risk") r.attention++;
-        else if (e.status === "New Hire" || e.status === "Hiring") r.onboarding++;
-        else r.onTrack++;
-        r.total++;
-        m.set(c, r);
-      }
-    }
-    return Array.from(m.values()).sort((a, b) => b.total - a.total || a.client.localeCompare(b.client));
-  }, [mine]);
-  const maxTotal = Math.max(1, ...byClient.map((r) => r.total));
+  const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
+  const shownHealth = useMemo(
+    () => (sdm === ALL ? health : health.filter((h) => h.engineers.some((e) => e.sdms.includes(sdm)))),
+    [health, sdm]
+  );
+  const lights = useMemo(() => {
+    const c = { green: 0, yellow: 0, red: 0 };
+    for (const h of shownHealth) c[h.light]++;
+    return c;
+  }, [shownHealth]);
+  const avgScore = shownHealth.length ? Math.round(shownHealth.reduce((n, h) => n + h.score, 0) / shownHealth.length) : 0;
 
-  const openSows = sows.filter((s) => s.status !== "Signed");
-  const flaggedClients = clients.filter((c) => c.status !== "On track");
+  const flags = useMemo(
+    () =>
+      mine
+        .map(personFlag)
+        .filter((f): f is NonNullable<typeof f> => f !== null)
+        .sort((a, b) => (a.level === b.level ? a.engineer.name.localeCompare(b.engineer.name) : a.level === "red" ? -1 : 1)),
+    [mine]
+  );
+  const statusMix = useMemo(
+    () => [
+      { label: "On track", n: counts.onTrack, cls: "seg-ok" },
+      { label: "Needs Attention", n: counts.attention, cls: "seg-warn" },
+      { label: "High Risk", n: counts.highRisk, cls: "seg-bad" },
+      { label: "Onboarding", n: counts.onboarding, cls: "seg-muted" },
+    ],
+    [counts]
+  );
+
   const risky = counts.attention + counts.highRisk;
+  const mixTotal = Math.max(1, statusMix.reduce((n, m) => n + m.n, 0));
 
   return (
     <main className="wrap">
       <header className="head">
         <div>
-          <h1>Estado de delivery SDM</h1>
+          <h1>Health del delivery SDM</h1>
           <p className="lede">
-            De <b>{counts.total}</b> personas en el tracker, <b>{counts.onTrack}</b> están On track y <b>{counts.onboarding}</b> están en onboarding.{" "}
-            <b>{counts.noCadence}</b> no tienen cadencia de 1:1 definida.
+            <b>{lights.green}</b> clientes en verde, <b>{lights.yellow}</b> en amarillo y <b>{lights.red}</b> en rojo.{" "}
+            <b>{flags.length}</b> de <b>{counts.total}</b> personas requieren seguimiento.
           </p>
         </div>
         <label className="filter">
@@ -99,12 +113,90 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
       </header>
 
       <div className="kpis">
-        <Kpi label="Personas activas" value={counts.total} sub="Software Development" />
-        <Kpi label="On track" value={counts.onTrack} sub="Status en Notion" />
-        <Kpi label="Needs Attention / High Risk" value={`${counts.attention} / ${counts.highRisk}`} sub="Requieren seguimiento" flag={risky > 0 ? "bad" : undefined} />
-        <Kpi label="En onboarding" value={counts.onboarding} sub="New Hire o Hiring" />
+        <Kpi label="Clientes en verde" value={lights.green} sub="Sin alertas" />
+        <Kpi label="Clientes en amarillo" value={lights.yellow} sub="Requieren seguimiento" flag={lights.yellow > 0 ? "warn" : undefined} />
+        <Kpi label="Clientes en rojo" value={lights.red} sub="Acción necesaria" flag={lights.red > 0 ? "bad" : undefined} />
+        <Kpi label="Score promedio" value={avgScore} sub="De 0 a 100" />
+        <Kpi label="Needs Attention / High Risk" value={`${counts.attention} / ${counts.highRisk}`} sub="Personas" flag={risky > 0 ? "bad" : undefined} />
         <Kpi label="Sin cadencia de 1:1" value={counts.noCadence} sub="Campo vacío en Notion" flag={counts.noCadence > 0 ? "warn" : undefined} />
       </div>
+
+      <section>
+        <h2>Health por cliente</h2>
+        <p className="hint">
+          Primero los rojos, luego los amarillos. Rojo: High Risk, SOW Pending o piloto vencido. Amarillo: Needs Attention, SOW sin firmar, piloto que termina en {PILOT_WARN_DAYS} días o menos, o personas sin cadencia de 1:1.
+          El score (0 a 100) ordena dentro de cada color.
+        </p>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th>Cliente</th><th>Health</th><th>Score</th><th>Status en Notion</th><th>Personas</th><th>Motivos</th></tr>
+            </thead>
+            <tbody>
+              {shownHealth.length === 0 && <EmptyRow cols={6} text="Ningún cliente para este SDM." />}
+              {shownHealth.map((h) => (
+                <tr key={h.key}>
+                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
+                  <td><LightPill light={h.light} /></td>
+                  <td><ScoreBar h={h} /></td>
+                  <td className="muted">{h.status || "—"}</td>
+                  <td className="num">{h.engineers.length || h.headcount || "—"}</td>
+                  <td className="wide">
+                    {h.reasons.length === 0 ? (
+                      <span className="muted">Sin alertas</span>
+                    ) : (
+                      <ul className="reasons">
+                        {h.reasons.map((r, i) => (
+                          <li key={i} className={`r-${r.level}`}>{r.text}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Salud del equipo</h2>
+        <p className="hint">Según el SDM elegido. Las personas en dos clientes cuentan una sola vez.</p>
+        <div className="legend">
+          {statusMix.map((m) => (
+            <span key={m.label}><i className={m.cls} />{m.label} ({m.n})</span>
+          ))}
+        </div>
+        <div className="mix" role="img" aria-label={"Estado del equipo: " + statusMix.map((m) => `${m.label} ${m.n}`).join(", ")}>
+          {statusMix.filter((m) => m.n > 0).map((m) => (
+            <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2>Personas que requieren seguimiento</h2>
+        <p className="hint">High Risk, Needs Attention, piloto vencido o por vencer, o sin cadencia de 1:1.</p>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th>Persona</th><th>Prioridad</th><th>Cliente</th><th>SDM</th><th>Motivos</th></tr>
+            </thead>
+            <tbody>
+              {flags.length === 0 && <EmptyRow cols={5} text="Nadie requiere seguimiento para este SDM." />}
+              {flags.map((f) => (
+                <tr key={f.engineer.id}>
+                  <td><NameLink href={f.engineer.url}>{f.engineer.name}</NameLink></td>
+                  <td><Pill s={f.level === "red" ? "Alta" : "Media"} className={f.level === "red" ? "bad" : "warn"} /></td>
+                  <td>{f.engineer.clients.join(", ") || "—"}</td>
+                  <td className="muted">{f.engineer.sdms.join(", ") || "—"}</td>
+                  <td className="wide">{f.reasons.join(" · ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section>
         <h2>Pilotos de 90 días</h2>
@@ -135,73 +227,6 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
               })}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <div className="grid2">
-        <section>
-          <h2>SOWs sin firmar</h2>
-          <p className="hint">Del SOW Tracker. Todo lo que no está en Signed.</p>
-          <div className="tw">
-            <table>
-              <thead><tr><th>Cliente</th><th>Estado</th><th>Siguiente paso</th></tr></thead>
-              <tbody>
-                {openSows.length === 0 && <EmptyRow cols={3} text="Todos los SOWs están firmados." />}
-                {openSows.map((s) => (
-                  <tr key={s.id}>
-                    <td><NameLink href={s.url}>{s.client}</NameLink></td>
-                    <td><Pill s={s.status} /></td>
-                    <td className="wide">{s.nextStep || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <section>
-          <h2>Clientes que no están On track</h2>
-          <p className="hint">De Active Clients Status, incluye Customer Success.</p>
-          <div className="tw">
-            <table>
-              <thead><tr><th>Cliente</th><th>Estado</th><th>Unidad</th><th>Headcount</th></tr></thead>
-              <tbody>
-                {flaggedClients.length === 0 && <EmptyRow cols={4} text="Todos los clientes están On track." />}
-                {flaggedClients.map((c) => (
-                  <tr key={c.id}>
-                    <td><NameLink href={c.url}>{c.client}</NameLink></td>
-                    <td><Pill s={c.status} /></td>
-                    <td className="muted">{c.unit || "—"}</td>
-                    <td className="num">{c.headcount ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
-      <section>
-        <h2>Personas por cliente</h2>
-        <p className="hint">Según el SDM elegido. Quien está en dos clientes cuenta en ambos.</p>
-        <div className="legend">
-          <span><i className="seg-ok" />On track</span>
-          <span><i className="seg-warn" />Needs Attention / High Risk</span>
-          <span><i className="seg-muted" />Onboarding</span>
-        </div>
-        <div className="bars" role="img" aria-label={"Personas por cliente: " + byClient.map((r) => `${r.client} ${r.total}`).join(", ")}>
-          {byClient.map((r) => (
-            <div className="bar-row" key={r.client} title={`${r.client}: ${r.onTrack} on track · ${r.attention} atención · ${r.onboarding} onboarding`}>
-              <span className="bar-label">{r.client}</span>
-              <span className="bar-track">
-                <span className="bar-fill" style={{ width: `${(r.total / maxTotal) * 100}%` }}>
-                  {r.onTrack > 0 && <span className="seg-ok" style={{ flex: r.onTrack }} />}
-                  {r.attention > 0 && <span className="seg-warn" style={{ flex: r.attention }} />}
-                  {r.onboarding > 0 && <span className="seg-muted" style={{ flex: r.onboarding }} />}
-                </span>
-                <span className="bar-num">{r.total}</span>
-              </span>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -255,5 +280,21 @@ function EmptyRow({ cols, text }: { cols: number; text: string }) {
     <tr>
       <td colSpan={cols} className="empty">{text}</td>
     </tr>
+  );
+}
+
+const LIGHT_LABEL: Record<Light, string> = { green: "Verde", yellow: "Amarillo", red: "Rojo" };
+const LIGHT_CLASS: Record<Light, string> = { green: "ok", yellow: "warn", red: "bad" };
+
+function LightPill({ light }: { light: Light }) {
+  return <span className={`pill ${LIGHT_CLASS[light]}`}>{LIGHT_LABEL[light]}</span>;
+}
+
+function ScoreBar({ h }: { h: ClientHealth }) {
+  return (
+    <span className="score" title={`Score ${h.score} de 100`}>
+      <span className="score-track"><span className={`score-fill seg-${LIGHT_CLASS[h.light]}`} style={{ width: `${h.score}%` }} /></span>
+      <span className="score-num">{h.score}</span>
+    </span>
   );
 }
