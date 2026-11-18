@@ -120,30 +120,22 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     return [...rows].sort((a, b) => sort.dir * (sort.by === "score" ? a.score - b.score : a.name.localeCompare(b.name)));
   }, [shownHealth, lightFilter, sort]);
 
-  // People grouped by client, using the client names from Active Clients Status.
-  // Someone on two clients shows up under both.
-  const teamByClient = useMemo(() => {
-    const pilotKeys = new Set(pilotClients.map((p) => p.h.key));
-    const m = new Map<string, { client: string; pilot: boolean; light: Light | null; people: Engineer[] }>();
-    for (const e of mine) {
-      for (const label of e.clients.length ? e.clients : ["No client"]) {
-        const match = health.find((h) => sameClient(h.name, label));
-        const name = match?.name ?? label;
-        const g = m.get(name) ?? { client: name, pilot: match ? pilotKeys.has(match.key) : false, light: match?.light ?? null, people: [] };
-        g.people.push(e);
-        m.set(name, g);
-      }
-    }
-    return Array.from(m.values()).sort((a, b) => b.people.length - a.people.length || a.client.localeCompare(b.client));
-  }, [mine, health, pilotClients]);
-
-  const visibleTeam = useMemo(() => {
+  // Status board: people grouped by their own status. Each chip shows the client(s), named as
+  // in Active Clients Status. Whoever needs help comes first.
+  const STATUS_ORDER = ["High Risk", "Needs Attention", "New Hire", "Hiring", "On track"];
+  const board = useMemo(() => {
     const q = teamQuery.trim().toLowerCase();
-    if (!q) return teamByClient;
-    return teamByClient
-      .map((g) => (g.client.toLowerCase().includes(q) ? g : { ...g, people: g.people.filter((e) => `${e.name} ${e.role}`.toLowerCase().includes(q)) }))
-      .filter((g) => g.people.length > 0);
-  }, [teamByClient, teamQuery]);
+    const clientLabel = (label: string) => health.find((h) => sameClient(h.name, label))?.name ?? label;
+    const people = mine
+      .map((e) => ({ e, clients: (e.clients.length ? e.clients : ["No client"]).map(clientLabel) }))
+      .filter(({ e, clients }) => !q || `${e.name} ${e.role} ${clients.join(" ")}`.toLowerCase().includes(q))
+      .sort((x, y) => x.clients.join().localeCompare(y.clients.join()) || x.e.name.localeCompare(y.e.name));
+    const by = new Map<string, typeof people>();
+    for (const p of people) by.set(p.e.status || "No status", [...(by.get(p.e.status || "No status") ?? []), p]);
+    const extra = Array.from(by.keys()).filter((k) => !STATUS_ORDER.includes(k)).sort();
+    const keep = (k: string) => by.has(k) || (!q && ["High Risk", "Needs Attention", "New Hire", "On track"].includes(k));
+    return [...STATUS_ORDER, ...extra].filter(keep).map((status) => ({ status, people: by.get(status) ?? [] }));
+  }, [mine, health, teamQuery]);
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -353,44 +345,37 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <section>
-        <h2>Team by client</h2>
+        <h2>Team by status</h2>
         <div className="team-tools">
           <input
             type="search" className="team-search" placeholder="Search person, role or client"
             value={teamQuery} onChange={(e) => setTeamQuery(e.target.value)} aria-label="Search the team"
           />
           <label className="team-toggle">
-            <input type="checkbox" checked={teamDetails} onChange={(e) => setTeamDetails(e.target.checked)} /> Show details (1:1, start, country)
+            <input type="checkbox" checked={teamDetails} onChange={(e) => setTeamDetails(e.target.checked)} /> Show details (role, 1:1, start, country)
           </label>
         </div>
-        {visibleTeam.length === 0 && <p className="hint">{teamQuery ? "No matches." : "Nobody assigned."}</p>}
-        <div className="cards">
-          {visibleTeam.map((g) => (
-            <article className="card" key={g.client}>
-              <header className="card-head">
-                <h3>
-                  {g.light && <LightPill light={g.light} />} {g.client}
-                </h3>
-                <span className="count">{g.people.length} {g.people.length === 1 ? "person" : "people"}</span>
-                {g.pilot && <Pill s="Pilot" className="info" />}
-              </header>
-              <ul className="people">
-                {g.people.map((e) => (
-                  <li key={e.id}>
-                    <div className="person-main">
-                      <NameLink href={e.url}>{e.name}</NameLink>
-                      <span className="person-role">{e.role || "—"}</span>
-                    </div>
-                    <Pill s={e.status} />
-                    {teamDetails && (
-                      <div className="person-detail">
-                        1:1 {e.cadence ?? "not set"} · Start {fmtDate(e.startDate)} · {e.location || "—"}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </article>
+        {board.length === 0 && <p className="hint">{teamQuery ? "No matches." : "Nobody assigned."}</p>}
+        <div className="board">
+          {board.map((col) => (
+            <div className="board-col" key={col.status}>
+              <div className="board-head">
+                <Pill s={col.status} />
+                <span className="count">{col.people.length}</span>
+              </div>
+              {col.people.length === 0 && <p className="board-empty">None</p>}
+              {col.people.map(({ e, clients }) => (
+                <div className="chip-card" key={e.id}>
+                  <NameLink href={e.url}>{e.name}</NameLink>
+                  <span className="chip-client">{clients.join(", ")}</span>
+                  {teamDetails && (
+                    <span className="chip-detail">
+                      {e.role || "—"}<br />1:1 {e.cadence ?? "not set"} · Start {fmtDate(e.startDate)} · {e.location || "—"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           ))}
         </div>
       </section>
