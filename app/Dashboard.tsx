@@ -95,7 +95,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       .sort((a, b) => (a.end ?? "9999").localeCompare(b.end ?? "9999") || a.h.name.localeCompare(b.h.name));
   }, [health, today]);
 
-  // Last client meeting per client (all of them, pilot included), longest without contact first
+  // Last client meeting per client (all of them, pilot included), most recent first, clients with no meeting last
   const meetingRows = useMemo(() => {
     const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
     return health
@@ -103,7 +103,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
         return { h, m, ago: m ? dayDiff(m.date, today) : null };
       })
-      .sort((a, b) => (a.ago === null ? 1 : 0) - (b.ago === null ? 1 : 0) || (b.ago ?? 0) - (a.ago ?? 0) || a.h.name.localeCompare(b.h.name));
+      .sort((a, b) => (a.ago === null ? 1 : 0) - (b.ago === null ? 1 : 0) || (a.ago ?? 0) - (b.ago ?? 0) || a.h.name.localeCompare(b.h.name));
   }, [health, today]);
 
   // Clients in pilot have their own section; the health list is for the rest
@@ -229,20 +229,19 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
       <section>
         <h2>Client meetings</h2>
-        <p className="hint">Last client check-in per client, from Fathom and Google Calendar (searched since {fmtDate(MEETINGS_SEARCHED_SINCE)}). Snapshot as of {fmtDate(MEETINGS_AS_OF)}.</p>
+        <p className="hint">Last client contact per client, most recent first (Fathom, Google Calendar and Notion; searched since {fmtDate(MEETINGS_SEARCHED_SINCE)}). Snapshot as of {fmtDate(MEETINGS_AS_OF)}.</p>
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Client</th><th>Last met</th><th>Days ago</th><th>Source</th><th>Meeting</th></tr>
+              <tr><th>Client</th><th>Last met</th><th>Days ago</th><th>Meeting</th></tr>
             </thead>
             <tbody>
-              {meetingRows.length === 0 && <EmptyRow cols={5} text="No clients." />}
+              {meetingRows.length === 0 && <EmptyRow cols={4} text="No clients." />}
               {meetingRows.map(({ h, m, ago }) => (
                 <tr key={h.key}>
                   <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
                   <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
                   <td>{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d`} className={ago > 30 ? "warn" : "info"} />}</td>
-                  <td className="muted">{m?.source ?? "—"}</td>
                   <td className="wide">
                     {m ? (
                       <>

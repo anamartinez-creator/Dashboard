@@ -19,6 +19,6 @@ export const CLIENT_MEETINGS: ClientMeeting[] = [
     notes: { comment: "Positive check-in focused on retaining the full team for 2027 (roadmap, 1-on-1s, planned year-end bonus). Puzzle's new internship program was introduced as a hiring option." } },
   { client: "Barosa", date: "2026-10-19", source: "Fathom + Calendar", title: "Barosa | Puzzle - Check In", url: "https://fathom.video/calls/864942133",
     notes: { comment: "Healthy and stable. Puzzle is now the exclusive development partner; the main bottleneck is the design backlog, which the team will tackle with AI prototyping tools." } },
-  { client: "OTR Solutions", date: "2026-09-04", source: "Fathom + Calendar", title: "OTR | Puzzle | Joao check in", url: "https://fathom.video/calls/810211547",
-    notes: { comment: "Delivery concern: an unapproved change to a live email template caused a multi-day outage. Agreed to set explicit deadlines and reinforce communication and availability expectations." } },
+  { client: "OTR Solutions", date: "2026-11-17", source: "Notion", title: "OTR Solutions: client comment in tracker", url: "https://app.notion.com/p/36570f1bf51680cc9e92c1cfa7918203",
+    notes: { comment: "Client replied positively: they are happy to have Marcella, who started Nov 16 and picks up OTR's work from Joao. Her 90-day pilot runs to Feb 16, 2027." } },
 ];
