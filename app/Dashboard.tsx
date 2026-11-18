@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Client, Engineer, LatestNote, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
@@ -58,10 +58,24 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   const [lightFilter, setLightFilter] = useState<Light | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
-  // Summary cards jump to their section (client cards also set the color filter)
+  // Tabs: Overview (what needs action), Clients, People. The tab is kept in the URL hash.
+  type Tab = "overview" | "clients" | "people";
+  const [tab, setTabState] = useState<Tab>("overview");
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    window.history.replaceState(null, "", t === "overview" ? window.location.pathname : `#${t}`);
+  };
+  useEffect(() => {
+    const h = window.location.hash.slice(1);
+    if (h === "clients" || h === "people") setTabState(h);
+  }, []);
+
+  // Summary cards jump to their tab and section (client cards also set the color filter)
+  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-pilot": "clients", "sec-client-followup": "clients", "sec-followup": "people", "sec-team": "people" };
   const goTo = (id: string, light?: Light | null) => {
     if (light !== undefined) setLightFilter(light);
-    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    setTab(TAB_OF[id] ?? "overview");
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
 
   // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
@@ -119,7 +133,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     for (const h of shownHealth) c[h.light]++;
     return c;
   }, [shownHealth]);
-  const avgScore = shownHealth.length ? Math.round(shownHealth.reduce((n, h) => n + h.score, 0) / shownHealth.length) : 0;
 
   const flags = useMemo(
     () =>
@@ -156,64 +169,123 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
   const mixTotal = Math.max(1, statusMix.reduce((n, m) => n + m.n, 0));
 
+  const updated = new Date(loadedAt).toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" });
+  const recentComments = clientRows
+    .filter((r) => r.m?.notes && r.ago !== null && r.ago <= 31)
+    .sort((x, y) => (x.ago ?? 0) - (y.ago ?? 0));
+
   return (
-    <main className="wrap">
-      <header className="head">
-        <div>
-          <h1>Software Service Delivery Dashboard</h1>
-          <p className="lede">
-            <b>{lights.green}</b> clients on track, <b>{lights.yellow}</b> need attention and <b>{lights.red}</b> high risk.{" "}
-            <b>{flags.length}</b> of <b>{counts.total}</b> people need follow-up.
-          </p>
+    <>
+      <div className="hero">
+        <div className="hero-in">
+          <div className="hero-top">
+            <div>
+              <p className="eyebrow">Puzzle · Service Delivery</p>
+              <h1>Software Service Delivery Dashboard</h1>
+            </div>
+            <p className="owner">SDM: <b>{owner}</b><br />Updated {updated}</p>
+          </div>
+          <div className="hero-groups">
+            <div>
+              <div className="group-label">Clients</div>
+              <div className="kpis">
+                <Kpi label="On track" value={lights.green} sub="Clients" onClick={() => goTo("sec-clients", "green")} />
+                <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} onClick={() => goTo("sec-clients", "yellow")} />
+                <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} onClick={() => goTo("sec-clients", "red")} />
+                <Kpi label="Pilot" value={pilotClients.length} sub="Clients" onClick={() => goTo("sec-pilot")} />
+              </div>
+            </div>
+            <div>
+              <div className="group-label">People</div>
+              <div className="kpis">
+                <Kpi label="Total" value={counts.total} sub="People" onClick={() => goTo("sec-team")} />
+                <Kpi label="Needs Attention" value={counts.attention} sub="People" flag={counts.attention > 0 ? "warn" : undefined} onClick={() => goTo("sec-followup")} />
+                <Kpi label="High Risk" value={counts.highRisk} sub="People" flag={counts.highRisk > 0 ? "bad" : undefined} onClick={() => goTo("sec-followup")} />
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="owner">SDM: <b>{owner}</b></p>
-      </header>
+      </div>
 
-      <section>
-        <h2>Client Status</h2>
-        <div className="kpis">
-          <Kpi label="On track" value={lights.green} sub="Clients" onClick={() => goTo("sec-clients", "green")} />
-          <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} onClick={() => goTo("sec-clients", "yellow")} />
-          <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} onClick={() => goTo("sec-clients", "red")} />
-          <Kpi label="Pilot" value={pilotClients.length} sub="Clients" onClick={() => goTo("sec-pilot")} />
-          <Kpi label="Average score" value={avgScore} sub="Out of 100" />
+      <nav className="tabs" role="tablist" aria-label="Dashboard sections">
+        <div className="tabs-in">
+          {([["overview", "Overview"], ["clients", "Clients"], ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
+            <button type="button" key={t} role="tab" aria-selected={tab === t} className={`tab${tab === t ? " on" : ""}`} onClick={() => setTab(t)}>{label}</button>
+          ))}
         </div>
-      </section>
+      </nav>
 
-      <section>
-        <h2>People</h2>
-        <div className="kpis">
-          <Kpi label="Total" value={counts.total} sub="People on your team" onClick={() => goTo("sec-team")} />
-          <Kpi label="Needs Attention" value={counts.attention} sub="People" flag={counts.attention > 0 ? "warn" : undefined} onClick={() => goTo("sec-followup")} />
-          <Kpi label="High Risk" value={counts.highRisk} sub="People" flag={counts.highRisk > 0 ? "bad" : undefined} onClick={() => goTo("sec-followup")} />
-        </div>
-      </section>
+      <main className="wrap" role="tabpanel">
+        {tab === "overview" && (
+          <>
+            <section>
+              <h2>Needs action</h2>
+              <div className="ov-grid">
+                <div className="ov-card">
+                  <div className="ov-head"><h3>Clients</h3><span className="count">{clientFlags.length}</span></div>
+                  {clientFlags.length === 0 && <p className="muted">No clients need follow-up.</p>}
+                  <ul className="ov-list">
+                    {clientFlags.slice(0, 5).map((f) => (
+                      <li key={f.h.key}>
+                        <Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} />
+                        <div><b>{f.h.name}</b>{f.pilot && <> <Pill s="Pilot" className="info" /></>}<span className="ov-sub">{f.reasons[0]}{f.reasons.length > 1 ? ` · +${f.reasons.length - 1} more` : ""}</span></div>
+                      </li>
+                    ))}
+                  </ul>
+                  <button type="button" className="more" onClick={() => goTo("sec-client-followup")}>See all clients →</button>
+                </div>
+                <div className="ov-card">
+                  <div className="ov-head"><h3>People</h3><span className="count">{flags.length}</span></div>
+                  {flags.length === 0 && <p className="muted">Nobody needs follow-up.</p>}
+                  <ul className="ov-list">
+                    {flags.slice(0, 5).map((f) => (
+                      <li key={f.engineer.id}>
+                        <Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} />
+                        <div><b>{f.engineer.name}</b><span className="ov-sub">{f.engineer.clients.join(", ") || "No client"} · {f.reasons[0]}</span></div>
+                      </li>
+                    ))}
+                  </ul>
+                  <button type="button" className="more" onClick={() => goTo("sec-followup")}>See all people →</button>
+                </div>
+              </div>
+            </section>
 
-      <section id="sec-pilot">
-        <h2>Clients in pilot period</h2>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr><th>Client</th><th className="center">Headcount</th><th>Start</th><th>End</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {pilotClients.length === 0 && <EmptyRow cols={5} text="No clients are in a pilot period." />}
-              {pilotClients.map((p) => (
-                <tr key={p.h.key}>
-                  <td>{p.h.url ? <NameLink href={p.h.url}>{p.h.name}</NameLink> : p.h.name}</td>
-                  <td className="center">{headcount(p.h) || "—"}</td>
-                  <td>{range(p.start, p.startLast)}</td>
-                  <td>{range(p.endFirst, p.end)}</td>
-                  <td>
-                    <PilotTag p={p} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            {pilotClients.length > 0 && (
+              <section>
+                <h2>Pilots</h2>
+                <div className="pilot-cards">
+                  {pilotClients.map((p) => {
+                    const pct = p.daysLeft === null || p.notStarted ? 0 : Math.max(0, Math.min(100, ((PILOT_DAYS - p.daysLeft) / PILOT_DAYS) * 100));
+                    return (
+                      <div className="pilot-card" key={p.h.key}>
+                        <div className="ov-head"><h3>{p.h.name}</h3><PilotTag p={p} /></div>
+                        <div className="pilot-track" role="img" aria-label={`${Math.round(pct)}% of the pilot elapsed`}><span style={{ width: `${pct}%` }} /></div>
+                        <p className="ov-sub">{range(p.start, p.end)} · {headcount(p.h) || "—"} {headcount(p.h) === 1 ? "person" : "people"}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
+            {recentComments.length > 0 && (
+              <section>
+                <h2>Latest client comments</h2>
+                <div className="comment-cards">
+                  {recentComments.map((r) => (
+                    <div className="note comment-card" key={r.h.key}>
+                      <span className="note-head"><b>{r.h.name}</b> · {fmtDate(r.m!.date)}</span>
+                      <p>{r.m!.notes!.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+
+        {tab === "clients" && (
+          <>
       <section id="sec-clients">
         <h2>Active Client Health</h2>
         <div className="legend">
@@ -278,18 +350,28 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         </div>
       </section>
 
-      <section id="sec-team">
-        <h2>Team health</h2>
-        <p className="hint">Your team only. People on two clients are counted once.</p>
-        <div className="legend">
-          {statusMix.map((m) => (
-            <span key={m.label}><i className={m.cls} />{m.label} ({m.n})</span>
-          ))}
-        </div>
-        <div className="mix" role="img" aria-label={"Team status: " + statusMix.map((m) => `${m.label} ${m.n}`).join(", ")}>
-          {statusMix.filter((m) => m.n > 0).map((m) => (
-            <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
-          ))}
+      <section id="sec-pilot">
+        <h2>Clients in pilot period</h2>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th>Client</th><th className="center">Headcount</th><th>Start</th><th>End</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {pilotClients.length === 0 && <EmptyRow cols={5} text="No clients are in a pilot period." />}
+              {pilotClients.map((p) => (
+                <tr key={p.h.key}>
+                  <td>{p.h.url ? <NameLink href={p.h.url}>{p.h.name}</NameLink> : p.h.name}</td>
+                  <td className="center">{headcount(p.h) || "—"}</td>
+                  <td>{range(p.start, p.startLast)}</td>
+                  <td>{range(p.endFirst, p.end)}</td>
+                  <td>
+                    <PilotTag p={p} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -316,6 +398,25 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+          </>
+        )}
+
+        {tab === "people" && (
+          <>
+      <section id="sec-team">
+        <h2>Team health</h2>
+        <p className="hint">Your team only. People on two clients are counted once.</p>
+        <div className="legend">
+          {statusMix.map((m) => (
+            <span key={m.label}><i className={m.cls} />{m.label} ({m.n})</span>
+          ))}
+        </div>
+        <div className="mix" role="img" aria-label={"Team status: " + statusMix.map((m) => `${m.label} ${m.n}`).join(", ")}>
+          {statusMix.filter((m) => m.n > 0).map((m) => (
+            <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
+          ))}
         </div>
       </section>
 
@@ -352,13 +453,15 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           </table>
         </div>
       </section>
+          </>
+        )}
 
-      <footer className="foot">
-        Data from Notion · Master SDM Tracker · updated{" "}
-        {new Date(loadedAt).toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
-        {" · "}refreshes automatically every minute · <AutoRefresh />
-      </footer>
-    </main>
+        <footer className="foot">
+          Updated {updated}
+          {" · "}refreshes automatically every minute · <AutoRefresh />
+        </footer>
+      </main>
+    </>
   );
 }
 
