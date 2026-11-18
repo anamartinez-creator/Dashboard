@@ -220,7 +220,30 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
                   <td>{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d`} className={ago > 30 ? "warn" : "info"} />}</td>
                   <td className="muted">{m?.source ?? "—"}</td>
-                  <td className="wide">{m ? (m.url ? <NameLink href={m.url}>{m.title}</NameLink> : m.title) : <span className="muted">No client meeting found</span>}</td>
+                  <td className="wide">
+                    {m ? (
+                      <>
+                        {m.url ? <NameLink href={m.url}>{m.title}</NameLink> : m.title}
+                        {m.notes && (
+                          <div className="note">
+                            <span className="note-head">Last notes · {fmtDate(m.date)}</span>
+                            <p>{m.notes.summary}</p>
+                            <ul className="reasons">
+                              {m.notes.takeaways.map((t, i) => <li key={i}>{t}</li>)}
+                            </ul>
+                            {m.notes.nextSteps.length > 0 && (
+                              <>
+                                <span className="note-head">Next steps</span>
+                                <ul className="reasons">
+                                  {m.notes.nextSteps.map((t, i) => <li key={i}>{t}</li>)}
+                                </ul>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    ) : <span className="muted">No client meeting found</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>

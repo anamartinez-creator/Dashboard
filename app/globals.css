@@ -133,3 +133,7 @@ td.empty { color: var(--muted); font-size: 12px; }
 .team-table th:nth-child(5) { width: 14%; }
 .team-table th:nth-child(6) { width: 14%; }
 .team-table td { overflow-wrap: anywhere; }
+
+.note .reasons { margin-top: 6px; }
+.note .note-head { margin-top: 8px; }
+.note .reasons li { padding-left: 14px; }
