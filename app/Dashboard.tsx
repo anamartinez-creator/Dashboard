@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import type { Client, Engineer, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
-import { computeClientHealth, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
+import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
+import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
 type Props = { owner: string; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
@@ -72,8 +73,16 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
         if (h.status !== "Pilot" && ppl.length === 0) return null;
         const starts = ppl.map((e) => e.startDate as string).sort();
         const ends = ppl.map((e) => e.pilotEnd as string).sort();
-        const start = starts[0] ?? null, startLast = starts[starts.length - 1] ?? null;
-        const end = ends[ends.length - 1] ?? null, endFirst = ends[0] ?? null;
+        let start = starts[0] ?? null, startLast = starts[starts.length - 1] ?? null;
+        let end = ends[ends.length - 1] ?? null, endFirst = ends[0] ?? null;
+        // A start date set by hand for the client wins over the people's dates
+        const manual = Object.entries(PILOT_STARTS).find(([n]) => sameClient(n, h.name))?.[1];
+        if (manual) {
+          const d = new Date(manual + "T00:00:00Z");
+          d.setUTCDate(d.getUTCDate() + PILOT_DAYS);
+          start = startLast = manual;
+          end = endFirst = d.toISOString().slice(0, 10);
+        }
         const notStarted = start !== null && dayDiff(today, start) > 0;
         const daysLeft = end ? dayDiff(today, end) : null;
         return { h, ppl, start, startLast, end, endFirst, notStarted, daysLeft, toStart: start ? dayDiff(today, start) : null };
@@ -173,7 +182,7 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
         <h2>Clientes en periodo de piloto</h2>
         <p className="hint">
           Clientes con status Pilot en Notion o con personas en sus primeros 90 días. Inicio y fin salen de la fecha de inicio y de Pilot End de cada persona
-          (si falta Pilot End, inicio + 90 días). Si las personas entran en fechas distintas se muestra el rango.
+          (si falta Pilot End, inicio + 90 días). Si las personas entran en fechas distintas se muestra el rango. VertexOne usa la fecha de inicio del cliente (16 nov) + 90 días; se cambia en lib/pilots.ts.
         </p>
         <div className="tw">
           <table>
