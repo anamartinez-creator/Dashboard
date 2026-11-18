@@ -21,4 +21,6 @@ export const CLIENT_MEETINGS: ClientMeeting[] = [
     notes: { comment: "Healthy and stable. Puzzle is now the exclusive development partner; the main bottleneck is the design backlog, which the team will tackle with AI prototyping tools." } },
   { client: "OTR Solutions", date: "2026-11-17", source: "Notion", title: "OTR Solutions: client comment in tracker", url: "https://app.notion.com/p/36570f1bf51680cc9e92c1cfa7918203",
     notes: { comment: "Client replied positively: they are happy to have Marcella, who started Nov 16 and picks up OTR's work from Joao. Her 90-day pilot runs to Feb 16, 2027." } },
+  { client: "Stay.ai", date: "2026-11-04", source: "Notion", title: "Stay.ai: client comment in tracker", url: "https://app.notion.com/p/2d370f1bf516807ca528c43dc9bab930",
+    notes: { comment: "Renan (tech lead) says the team is doing great and he likes having them around." } },
 ];
