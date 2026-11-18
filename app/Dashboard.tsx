@@ -226,11 +226,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div className="brief-main">
           <p className="brief-eyebrow">Today at a glance</p>
           <h2 className="brief-title">{headline}</h2>
-          <p className="brief-text">
-            {shownHealth.length} active {shownHealth.length === 1 ? "client" : "clients"}: {lights.green} on track, {lights.yellow} needing attention, {lights.red} at high risk.
-            {" "}{pilotClients.length} in pilot{endingSoon.length > 0 && <>, <b>{endingSoon.map((p) => p.h.name).join(", ")}</b> ending within {PILOT_WARN_DAYS} days</>}.
-            {" "}{counts.total} people on the team{counts.attention + counts.highRisk > 0 ? <>, <b>{counts.attention + counts.highRisk}</b> needing follow-up</> : ", all on track"}.
-          </p>
         </div>
         <div className="brief-actions">
           <button type="button" onClick={() => { setTab("overview"); setQuick("risk"); setTimeout(() => document.querySelector(".map")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }}>See what's at risk</button>
