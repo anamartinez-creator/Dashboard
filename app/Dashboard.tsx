@@ -169,6 +169,43 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
   const mixTotal = Math.max(1, statusMix.reduce((n, m) => n + m.n, 0));
 
+  // Executive map: plain-language summary, quick questions, search and a side panel per client
+  type Quick = "all" | "risk" | "attention" | "pilot" | "ending" | "new" | "stale";
+  const [quick, setQuick] = useState<Quick>("all");
+  const [q, setQ] = useState("");
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenKey(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const QUICK_TEST: Record<Quick, (r: (typeof clientRows)[number]) => boolean> = {
+    all: () => true,
+    risk: (r) => r.h.light === "red",
+    attention: (r) => r.h.light === "yellow",
+    pilot: (r) => r.pilot,
+    ending: (r) => r.pilotInfo?.daysLeft != null && r.pilotInfo.daysLeft <= PILOT_WARN_DAYS,
+    new: (r) => r.h.engineers.some((e) => e.status === "New Hire" || e.status === "Hiring"),
+    stale: (r) => r.ago !== null && r.ago > 30,
+  };
+  const QUICK_LABEL: [Quick, string][] = [["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["pilot", "In pilot"], ["ending", "Pilots ending soon"], ["new", "New hires"], ["stale", "No recent contact"]];
+  const mapRows = useMemo(() => {
+    const sev = { red: 0, yellow: 1, green: 2 } as Record<Light, number>;
+    const needle = q.trim().toLowerCase();
+    return clientRows
+      .filter((r) => QUICK_TEST[quick](r))
+      .filter((r) => !needle || r.h.name.toLowerCase().includes(needle) || r.h.engineers.some((e) => e.name.toLowerCase().includes(needle)))
+      .sort((a, b) => sev[a.h.light] - sev[b.h.light] || a.h.name.localeCompare(b.h.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientRows, quick, q]);
+  const quickCount = (k: Quick) => clientRows.filter(QUICK_TEST[k]).length;
+  const openRow = openKey ? clientRows.find((r) => r.h.key === openKey) ?? null : null;
+  const endingSoon = pilotClients.filter((p) => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= PILOT_WARN_DAYS);
+  const headline =
+    lights.red > 0 ? `${lights.red} ${lights.red === 1 ? "client is" : "clients are"} at risk`
+    : lights.yellow > 0 ? `${lights.yellow} ${lights.yellow === 1 ? "client needs" : "clients need"} attention`
+    : "All active clients are on track";
+
   const updated = new Date(loadedAt).toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" });
   const recentComments = clientRows
     .filter((r) => r.m?.notes && r.ago !== null && r.ago <= 31)
@@ -218,6 +255,93 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       <main className="wrap" role="tabpanel">
         {tab === "overview" && (
           <>
+            <section className="exec">
+              <div className={`brief ${lights.red > 0 ? "is-bad" : lights.yellow > 0 ? "is-warn" : "is-ok"}`}>
+                <div className="brief-main">
+                  <p className="brief-eyebrow">Today at a glance</p>
+                  <h2 className="brief-title">{headline}</h2>
+                  <p className="brief-text">
+                    {shownHealth.length} active {shownHealth.length === 1 ? "client" : "clients"}: {lights.green} on track, {lights.yellow} needing attention, {lights.red} at high risk.
+                    {" "}{pilotClients.length} in pilot{endingSoon.length > 0 && <>, <b>{endingSoon.map((p) => p.h.name).join(", ")}</b> ending within {PILOT_WARN_DAYS} days</>}.
+                    {" "}{counts.total} people on the team{counts.attention + counts.highRisk > 0 ? <>, <b>{counts.attention + counts.highRisk}</b> needing follow-up</> : ", all on track"}.
+                  </p>
+                </div>
+                <div className="brief-actions">
+                  <button type="button" onClick={() => setQuick("risk")}>See what's at risk</button>
+                  <button type="button" className="ghost" onClick={() => goTo("sec-followup")}>People follow-up →</button>
+                </div>
+              </div>
+
+              <div className="ask">
+                <span className="ask-label">Quick questions</span>
+                {QUICK_LABEL.map(([k, label]) => (
+                  <button type="button" key={k} className={`chip big${quick === k ? " on" : ""}`} aria-pressed={quick === k} onClick={() => setQuick(k)}>
+                    {label} <em>{quickCount(k)}</em>
+                  </button>
+                ))}
+                <input className="map-search" type="search" placeholder="Search a client or person…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search clients or people" />
+              </div>
+
+              <div className="map" role="list">
+                {mapRows.map((r) => {
+                  const pi = r.pilotInfo;
+                  const sub = pi
+                    ? pi.notStarted ? `Pilot starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot period ended" : `Pilot · ${pi.daysLeft} days left`
+                    : r.ago !== null ? `Last contact ${r.ago === 0 ? "today" : `${r.ago} days ago`}` : "No contact on record";
+                  const n = headcount(r.h);
+                  return (
+                    <button type="button" role="listitem" key={r.h.key} className={`tile tile-${LIGHT_CLASS[r.h.light]}${openKey === r.h.key ? " open" : ""}`} onClick={() => setOpenKey(r.h.key)}>
+                      <span className="tile-top"><LightPill light={r.h.light} />{r.pilot && <span className="tag">Pilot</span>}</span>
+                      <span className="tile-name">{r.h.name}</span>
+                      <span className="tile-meta"><b>{n || "—"}</b> {n === 1 ? "person" : "people"}</span>
+                      <span className="tile-sub">{sub}</span>
+                    </button>
+                  );
+                })}
+                {mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
+              </div>
+            </section>
+
+            {openRow && (
+              <>
+                <div className="scrim" onClick={() => setOpenKey(null)} />
+                <aside className="drawer" role="dialog" aria-modal="true" aria-label={openRow.h.name}>
+                  <button type="button" className="drawer-x" onClick={() => setOpenKey(null)} aria-label="Close">×</button>
+                  <p className="brief-eyebrow">{LIGHT_LABEL[openRow.h.light]}{openRow.pilot ? " · Pilot" : ""}</p>
+                  <h3 className="drawer-title">{openRow.h.url ? <NameLink href={openRow.h.url}>{openRow.h.name}</NameLink> : openRow.h.name}</h3>
+                  <div className="drawer-stats">
+                    <div><b>{headcount(openRow.h) || "—"}</b><span>People</span></div>
+                    <div><b>{openRow.ago === null ? "—" : openRow.ago}</b><span>Days since contact</span></div>
+                    {openRow.pilotInfo && <div><b>{openRow.pilotInfo.daysLeft === null ? "—" : Math.max(0, openRow.pilotInfo.daysLeft)}</b><span>Pilot days left</span></div>}
+                  </div>
+                  {openRow.pilotInfo && <p className="drawer-line"><span>Pilot period</span>{range(openRow.pilotInfo.start, openRow.pilotInfo.end)}</p>}
+                  {openRow.m && <p className="drawer-line"><span>Last contact</span>{fmtDate(openRow.m.date)}</p>}
+                  {openRow.m?.notes && openRow.ago !== null && openRow.ago <= 31 && (
+                    <div className="note"><span className="note-head">Latest comment</span><p>{openRow.m.notes.comment}</p></div>
+                  )}
+                  {openRow.h.reasons.some((x) => x.level !== "info") && (
+                    <>
+                      <h4>Why</h4>
+                      <ul className="reasons">
+                        {openRow.h.reasons.filter((x) => x.level !== "info").map((x, i) => <li key={i} className={`r-${x.level}`}>{x.text}</li>)}
+                      </ul>
+                    </>
+                  )}
+                  <h4>People</h4>
+                  {openRow.h.engineers.length === 0 && <p className="muted">No people listed in Notion for this client.</p>}
+                  <ul className="pc-list">
+                    {[...openRow.h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => (
+                      <li key={e.id}>
+                        <span className="avatar" aria-hidden="true">{e.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</span>
+                        <span className="who"><NameLink href={e.url}>{e.name}</NameLink><small>{e.role || "—"}</small></span>
+                        <Pill s={e.status} />
+                      </li>
+                    ))}
+                  </ul>
+                </aside>
+              </>
+            )}
+
             <section>
               <h2>Needs action</h2>
               <div className="ov-grid">
