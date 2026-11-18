@@ -44,7 +44,7 @@ El semáforo de cada cliente es el peor de sus motivos. Las reglas están en `li
 | Color | Cuándo |
 | --- | --- |
 | Rojo | Cliente o persona en High Risk, SOW en Pending, o piloto vencido de alguien que sigue como New Hire |
-| Amarillo | Cliente o persona en Needs Attention, SOW por confirmar o enviado sin firmar, piloto que termina en 14 días o menos, o personas sin cadencia de 1:1 |
+| Amarillo | Cliente en Needs Attention (las personas en Needs Attention aparecen en "People who need follow-up"), SOW por confirmar o enviado sin firmar, piloto que termina en 14 días o menos, o personas sin cadencia de 1:1 |
 | Verde | Todo lo demás |
 
 El score (0 a 100) empieza en 100 y resta puntos por cada motivo; sirve para ordenar dentro de cada color. Los clientes se relacionan con personas y SOWs por nombre aunque se escriban distinto en Notion ("Proline Eng" y "Proline Engineering", "Vertex" y "VertexOne"). Los pilotos solo se evalúan para personas en New Hire o con `Pilot End` lleno.

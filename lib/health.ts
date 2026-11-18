@@ -2,7 +2,7 @@
 //
 // Traffic light (the worst reason wins):
 //   Rojo:     High Risk (cliente o persona), SOW Pending, piloto vencido sin actualizar
-//   Amarillo: Needs Attention (cliente o persona), SOW To confirm / Sent,
+//   Amarillo: Needs Attention (solo el cliente; las personas van en seguimiento), SOW To confirm / Sent,
 //             piloto que termina en 14 días o menos, personas sin cadencia de 1:1
 //   Verde:    todo lo demás
 // The list is ordered by light (rojo first) and then by score: it starts at 100 and
@@ -67,9 +67,8 @@ function scoreClient(name: string, url: string | null, status: string, unit: str
   else if (status === "Pilot" || status === "New Client") reasons.push({ level: "info", text: `Client is ${status}` });
 
   const hr = engineers.filter((e) => e.status === "High Risk");
-  const na = engineers.filter((e) => e.status === "Needs Attention");
   if (hr.length) { reasons.push({ level: "red", text: `High Risk: ${names(hr)}` }); score -= Math.min(30, 15 * hr.length); }
-  if (na.length) { reasons.push({ level: "yellow", text: `Needs Attention: ${names(na)}` }); score -= Math.min(20, 10 * na.length); }
+  // People with Needs Attention are listed under "People who need follow-up", not on the client
 
   for (const s of sows) {
     if (s.status === "Signed") continue;
