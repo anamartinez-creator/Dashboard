@@ -252,3 +252,6 @@ body { background: var(--paper); }
 .comment-card { margin: 0; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--cyan); }
 @media (max-width: 600px) { .hero h1 { font-size: 28px; } .ov-list li { grid-template-columns: 64px 1fr; } }
 .ov-list li > .pill { justify-self: start; text-align: center; }
+
+.plist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.plist li { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }

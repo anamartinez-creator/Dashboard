@@ -71,7 +71,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   }, []);
 
   // Summary cards jump to their tab and section (client cards also set the color filter)
-  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-pilot": "clients", "sec-client-followup": "clients", "sec-followup": "people", "sec-team": "people" };
+  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-pilot": "clients", "sec-client-followup": "clients", "sec-followup": "people", "sec-team": "people", "sec-people-client": "people" };
   const goTo = (id: string, light?: Light | null) => {
     if (light !== undefined) setLightFilter(light);
     setTab(TAB_OF[id] ?? "overview");
@@ -417,6 +417,35 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           {statusMix.filter((m) => m.n > 0).map((m) => (
             <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
           ))}
+        </div>
+      </section>
+
+      <section id="sec-people-client">
+        <h2>People by client</h2>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th>Client</th><th className="center">People</th><th>Team</th></tr>
+            </thead>
+            <tbody>
+              {health.filter((h) => h.engineers.length > 0).map((h) => (
+                <tr key={h.key}>
+                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
+                  <td className="center">{h.engineers.length}</td>
+                  <td className="wide">
+                    <ul className="plist">
+                      {[...h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => (
+                        <li key={e.id}>
+                          <NameLink href={e.url}>{e.name}</NameLink>
+                          {e.role && <span className="muted"> · {e.role}</span>} <Pill s={e.status} />
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
