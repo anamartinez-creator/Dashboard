@@ -123,3 +123,13 @@ td.empty { color: var(--muted); font-size: 12px; }
 .note p { margin: 4px 0 0; white-space: pre-line; }
 
 .dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; }
+
+/* Team-by-client tables: same column widths in every client block so statuses line up */
+.team-table { table-layout: fixed; min-width: 760px; }
+.team-table th:nth-child(1) { width: 22%; }
+.team-table th:nth-child(2) { width: 14%; }
+.team-table th:nth-child(3) { width: 24%; }
+.team-table th:nth-child(4) { width: 12%; }
+.team-table th:nth-child(5) { width: 14%; }
+.team-table th:nth-child(6) { width: 14%; }
+.team-table td { overflow-wrap: anywhere; }

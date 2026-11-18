@@ -324,7 +324,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                 {g.pilot && <Pill s="Pilot" className="info" />}
               </h3>
               <div className="tw">
-                <table>
+                <table className="team-table">
                   <thead>
                     <tr><th>Person</th><th>Status</th><th>Role</th><th>1:1</th><th>Start</th><th>Country</th></tr>
                   </thead>
