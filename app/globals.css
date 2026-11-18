@@ -391,3 +391,10 @@ h2.brief-title::before { display: none; }
 @keyframes slide { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @media (max-width: 600px) { .map-search { margin-left: 0; width: 100%; } h2.brief-title { font-size: 26px; } }
+
+/* Today at a glance lives in the hero */
+.hero .brief { box-shadow: none; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.2); border-left: 8px solid var(--cyan); backdrop-filter: blur(6px); padding: 20px 24px; }
+.hero .brief.is-bad { border-left-color: #ff6b6b; }
+.hero .brief.is-warn { border-left-color: #ffc14d; }
+.hero .brief.is-ok { border-left-color: var(--green); }
+.hero h2.brief-title { font-size: 28px; }

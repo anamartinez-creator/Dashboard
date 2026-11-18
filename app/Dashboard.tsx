@@ -222,25 +222,22 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
             </div>
             <p className="owner">SDM: <b>{owner}</b><br />Updated {updated}</p>
           </div>
-          <div className="hero-groups">
-            <div>
-              <div className="group-label">Clients</div>
-              <div className="kpis">
-                <Kpi label="On track" value={lights.green} sub="Clients" onClick={() => goTo("sec-clients", "green")} />
-                <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} onClick={() => goTo("sec-clients", "yellow")} />
-                <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} onClick={() => goTo("sec-clients", "red")} />
-                <Kpi label="Pilot" value={pilotClients.length} sub="Clients" onClick={() => goTo("sec-pilot")} />
-              </div>
-            </div>
-            <div>
-              <div className="group-label">People</div>
-              <div className="kpis">
-                <Kpi label="Total" value={counts.total} sub="People" onClick={() => goTo("sec-team")} />
-                <Kpi label="Needs Attention" value={counts.attention} sub="People" flag={counts.attention > 0 ? "warn" : undefined} onClick={() => goTo("sec-followup")} />
-                <Kpi label="High Risk" value={counts.highRisk} sub="People" flag={counts.highRisk > 0 ? "bad" : undefined} onClick={() => goTo("sec-followup")} />
-              </div>
-            </div>
-          </div>
+      <div className={`brief ${lights.red > 0 ? "is-bad" : lights.yellow > 0 ? "is-warn" : "is-ok"}`}>
+        <div className="brief-main">
+          <p className="brief-eyebrow">Today at a glance</p>
+          <h2 className="brief-title">{headline}</h2>
+          <p className="brief-text">
+            {shownHealth.length} active {shownHealth.length === 1 ? "client" : "clients"}: {lights.green} on track, {lights.yellow} needing attention, {lights.red} at high risk.
+            {" "}{pilotClients.length} in pilot{endingSoon.length > 0 && <>, <b>{endingSoon.map((p) => p.h.name).join(", ")}</b> ending within {PILOT_WARN_DAYS} days</>}.
+            {" "}{counts.total} people on the team{counts.attention + counts.highRisk > 0 ? <>, <b>{counts.attention + counts.highRisk}</b> needing follow-up</> : ", all on track"}.
+          </p>
+        </div>
+        <div className="brief-actions">
+          <button type="button" onClick={() => { setTab("overview"); setQuick("risk"); setTimeout(() => document.querySelector(".map")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }}>See what's at risk</button>
+          <button type="button" className="ghost" onClick={() => goTo("sec-followup")}>People follow-up →</button>
+        </div>
+      </div>
+
         </div>
       </div>
 
@@ -256,22 +253,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         {tab === "overview" && (
           <>
             <section className="exec">
-              <div className={`brief ${lights.red > 0 ? "is-bad" : lights.yellow > 0 ? "is-warn" : "is-ok"}`}>
-                <div className="brief-main">
-                  <p className="brief-eyebrow">Today at a glance</p>
-                  <h2 className="brief-title">{headline}</h2>
-                  <p className="brief-text">
-                    {shownHealth.length} active {shownHealth.length === 1 ? "client" : "clients"}: {lights.green} on track, {lights.yellow} needing attention, {lights.red} at high risk.
-                    {" "}{pilotClients.length} in pilot{endingSoon.length > 0 && <>, <b>{endingSoon.map((p) => p.h.name).join(", ")}</b> ending within {PILOT_WARN_DAYS} days</>}.
-                    {" "}{counts.total} people on the team{counts.attention + counts.highRisk > 0 ? <>, <b>{counts.attention + counts.highRisk}</b> needing follow-up</> : ", all on track"}.
-                  </p>
-                </div>
-                <div className="brief-actions">
-                  <button type="button" onClick={() => setQuick("risk")}>See what's at risk</button>
-                  <button type="button" className="ghost" onClick={() => goTo("sec-followup")}>People follow-up →</button>
-                </div>
-              </div>
-
               <div className="ask">
                 <span className="ask-label">Quick questions</span>
                 {QUICK_LABEL.map(([k, label]) => (
