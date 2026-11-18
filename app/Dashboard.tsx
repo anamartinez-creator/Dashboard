@@ -278,6 +278,34 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </div>
             </section>
 
+
+            {quick !== "all" && mapRows.length > 0 && (
+              <section className="needs-detail">
+                <h2>{QUICK_LABEL.find(([k]) => k === quick)?.[1]} · details</h2>
+                <div className="detail-list">
+                  {mapRows.map((r) => {
+                    const why = r.h.reasons.filter((x) => x.level !== "info");
+                    const staleTxt = r.ago !== null && r.ago > 30 ? `No client contact in ${r.ago} days` : null;
+                    return (
+                      <article key={r.h.key} className={`detail tile-${LIGHT_CLASS[r.h.light]}`}>
+                        <header>
+                          <h3>{r.h.url ? <NameLink href={r.h.url}>{r.h.name}</NameLink> : r.h.name}</h3>
+                          <span className="muted">{headcount(r.h) || "—"} people{r.pilotInfo ? ` · Pilot ${range(r.pilotInfo.start, r.pilotInfo.end)}` : ""}</span>
+                          <button type="button" className="more" onClick={() => setOpenKey(r.h.key)}>Full detail →</button>
+                        </header>
+                        <ul className="reasons">
+                          {why.map((x, i) => <li key={i} className={`r-${x.level}`}>{x.text}</li>)}
+                          {staleTxt && <li className="r-yellow">{staleTxt}</li>}
+                          {why.length === 0 && !staleTxt && <li className="r-info">Nothing flagged.</li>}
+                        </ul>
+                        {r.m?.notes && r.ago !== null && r.ago <= 31 && <div className="note"><span className="note-head">Latest comment · {fmtDate(r.m.date)}</span><p>{r.m.notes.comment}</p></div>}
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {openRow && (
               <>
                 <div className="scrim" onClick={() => setOpenKey(null)} />
@@ -318,7 +346,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </>
             )}
 
-            {pilotClients.length > 0 && (
+            {quick === "all" && pilotClients.length > 0 && (
               <section>
                 <h2>Pilots</h2>
                 <div className="pilot-cards">
@@ -336,7 +364,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </section>
             )}
 
-            {recentComments.length > 0 && (
+            {quick === "all" && recentComments.length > 0 && (
               <section>
                 <h2>Latest client comments</h2>
                 <div className="comment-cards">

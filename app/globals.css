@@ -398,3 +398,13 @@ h2.brief-title::before { display: none; }
 .hero .brief.is-warn { border-left-color: #ffc14d; }
 .hero .brief.is-ok { border-left-color: var(--green); }
 .hero h2.brief-title { font-size: 28px; }
+
+.needs-detail { display: flex; flex-direction: column; gap: 14px; }
+.needs-detail > h2 { margin: 0; }
+.detail-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+.detail { background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--seg-muted); border-radius: var(--r); padding: 16px 18px; box-shadow: var(--shadow-1); }
+.detail header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
+.detail h3 { font-family: var(--head-font); font-size: 19px; color: var(--blue); margin: 0; }
+.detail .more { margin-left: auto; padding: 0; }
+.detail .reasons li { padding: 3px 0 3px 18px; }
+.detail .reasons li::before { top: 11px; }
