@@ -245,7 +245,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   <td className="wide">
                     {m ? (
                       <>
-                        {m.url ? <NameLink href={m.url}>{m.title}</NameLink> : m.title}
+                        {m.title}
                         {m.notes && ago !== null && ago <= 31 && (
                           <div className="note">
                             <span className="note-head">Comment · {fmtDate(m.date)}</span>
