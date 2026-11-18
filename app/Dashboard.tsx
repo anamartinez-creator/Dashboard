@@ -228,7 +228,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           <h2 className="brief-title">{headline}</h2>
         </div>
         <div className="brief-actions">
-          <button type="button" onClick={() => { setTab("overview"); setQuick("attention"); setTimeout(() => document.querySelector(".map")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }}>See what needs attention</button>
+          <button type="button" onClick={() => { setTab("overview"); setQuick("attention"); setTimeout(() => document.querySelector(".needs-detail, .ask")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }}>See what needs attention</button>
           <button type="button" className="ghost" onClick={() => goTo("sec-followup")}>People follow-up →</button>
         </div>
       </div>
