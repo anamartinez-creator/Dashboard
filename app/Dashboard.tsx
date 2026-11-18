@@ -54,13 +54,9 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
 
-  // Interactivity for Active Client Health: filter by color, pick a client
+  // Active Client Health: filter by color, click a row for all reasons
   const [lightFilter, setLightFilter] = useState<Light | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const pickClient = (key: string) => {
-    setSelected((cur) => (cur === key ? null : key));
-    document.getElementById(`row-${key}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
 
   // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
   // Dates come from the people: first start and last end among those in pilot.
@@ -92,16 +88,19 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       .sort((a, b) => (a.end ?? "9999").localeCompare(b.end ?? "9999") || a.h.name.localeCompare(b.h.name));
   }, [health, today]);
 
-  // Last client meeting per client (all of them, pilot included), most recent first, clients with no meeting last
-  const meetingRows = useMemo(() => {
+  // One row per client: health, people, last contact and why. Active clients first (red, yellow, green),
+  // pilot clients after them (they are not counted in the health cards).
+  const clientRows = useMemo(() => {
     const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
-    return health
-      .map((h) => {
-        const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
-        return { h, m, ago: m ? dayDiff(m.date, today) : null };
-      })
-      .sort((a, b) => (a.ago === null ? 1 : 0) - (b.ago === null ? 1 : 0) || (a.ago ?? 0) - (b.ago ?? 0) || a.h.name.localeCompare(b.h.name));
-  }, [health, today]);
+    const inPilot = new Set(pilotClients.map((p) => p.h.key));
+    const rows = health.map((h) => {
+      const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
+      const mix = new Map<string, number>();
+      for (const e of h.engineers) mix.set(e.status || "No status", (mix.get(e.status || "No status") ?? 0) + 1);
+      return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key), mix: Array.from(mix.entries()) };
+    });
+    return [...rows.filter((r) => !r.pilot), ...rows.filter((r) => r.pilot).sort((a, b) => a.h.name.localeCompare(b.h.name))];
+  }, [health, pilotClients, today]);
 
   // Clients in pilot have their own section; the health list is for the rest
   const shownHealth = useMemo(() => {
@@ -109,9 +108,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     return health.filter((h) => !inPilot.has(h.key));
   }, [health, pilotClients]);
 
-  const visibleHealth = useMemo(() => shownHealth.filter((h) => !lightFilter || h.light === lightFilter), [shownHealth, lightFilter]);
-  // Only clients with alerts get listed under the chart (plus the one picked in the chart)
-  const alertRows = useMemo(() => visibleHealth.filter((h) => h.reasons.length > 0 || h.light !== "green" || h.key === selected), [visibleHealth, selected]);
+  const visibleRows = useMemo(() => clientRows.filter((r) => !lightFilter || (!r.pilot && r.h.light === lightFilter)), [clientRows, lightFilter]);
 
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
@@ -175,61 +172,62 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
       <section>
         <h2>Active Client Health</h2>
-        <HealthChart all={shownHealth} rows={visibleHealth} filter={lightFilter} onFilter={setLightFilter} selected={selected} onPick={pickClient} />
-        {alertRows.length > 0 && (
-          <div className="alerts">
-            <h3>Needs action</h3>
-            <ul>
-              {alertRows.map((h) => (
-                <li key={h.key} id={`row-${h.key}`} className={selected === h.key ? "is-selected" : ""}>
-                  <span className="alert-name"><LightPill light={h.light} /> {h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name} <span className="muted">· {headcount(h)}</span></span>
-                  {h.reasons.length === 0 ? (
-                    <span className="muted">No alerts</span>
-                  ) : (
-                    <ul className="reasons">
-                      {h.reasons.map((r, i) => (
-                        <li key={i} className={`r-${r.level}`}>{r.text}</li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {visibleHealth.length === 0 && <p className="hint">{lightFilter ? "No clients with this color." : "No clients on your team."}</p>}
-      </section>
-
-      <section>
-        <h2>Client meetings</h2>
+        <div className="legend">
+          {([["green", "On track"], ["yellow", "Needs Attention"], ["red", "High Risk"]] as [Light, string][]).map(([l, label]) => (
+            <button type="button" key={l} className={`chip${lightFilter === l ? " on" : ""}`} onClick={() => setLightFilter(lightFilter === l ? null : l)} aria-pressed={lightFilter === l}>
+              <i className={`seg-${LIGHT_CLASS[l]}`} />{label}
+            </button>
+          ))}
+          {lightFilter && <button type="button" className="chip clear" onClick={() => setLightFilter(null)}>Clear filter</button>}
+        </div>
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Client</th><th>Last met</th><th>Days ago</th><th>Meeting</th></tr>
+              <tr>
+                <th>Client</th><th className="center">Health</th><th className="center">People</th><th>Team status</th>
+                <th>Last contact</th><th>Why and latest comment</th>
+              </tr>
             </thead>
             <tbody>
-              {meetingRows.length === 0 && <EmptyRow cols={4} text="No clients." />}
-              {meetingRows.map(({ h, m, ago }) => (
-                <tr key={h.key}>
-                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
-                  <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
-                  <td>{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d`} className={ago > 30 ? "warn" : "info"} />}</td>
-                  <td className="wide">
-                    {m ? (
-                      <>
-                        {m.title}
-                        {m.notes && ago !== null && ago <= 31 && (
-                          <div className="note">
-                            <span className="note-head">Comment · {fmtDate(m.date)}</span>
-                            <p>{m.notes.comment}</p>
-                          </div>
-                        )}
-                        {(!m.notes || ago === null || ago > 31) && <div className="muted">No notes from the last month</div>}
-                      </>
-                    ) : <span className="muted">No client meeting found</span>}
-                  </td>
-                </tr>
-              ))}
+              {visibleRows.length === 0 && <EmptyRow cols={6} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
+              {visibleRows.map(({ h, m, ago, pilot, mix }) => {
+                const open = selected === h.key;
+                const recent = m?.notes && ago !== null && ago <= 31;
+                return (
+                  <tr key={h.key} className={`clickable${open ? " is-selected" : ""}`} onClick={() => setSelected((cur) => (cur === h.key ? null : h.key))}>
+                    <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
+                    <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <LightPill light={h.light} />}</td>
+                    <td className="center">{headcount(h) || "—"}</td>
+                    <td className="muted">{mix.length ? mix.map(([st, n]) => `${n} ${st}`).join(" · ") : "—"}</td>
+                    <td>
+                      {m ? (
+                        <>
+                          {fmtDate(m.date)}
+                          <div><Pill s={`${ago} d ago`} className={ago !== null && ago > 30 ? "warn" : "info"} /></div>
+                        </>
+                      ) : <span className="muted">Not found</span>}
+                    </td>
+                    <td className="wide">
+                      {h.reasons.length === 0 ? (
+                        <span className="muted">No alerts</span>
+                      ) : (
+                        <ul className="reasons">
+                          {(open ? h.reasons : h.reasons.slice(0, 1)).map((r, i) => (
+                            <li key={i} className={`r-${r.level}`}>{r.text}</li>
+                          ))}
+                          {!open && h.reasons.length > 1 && <li className="r-info">+{h.reasons.length - 1} more (click the row)</li>}
+                        </ul>
+                      )}
+                      {recent && m?.notes && (
+                        <div className="note">
+                          <span className="note-head">Comment · {fmtDate(m.date)}</span>
+                          <p>{m.notes.comment}</p>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -353,53 +351,4 @@ const LIGHT_CLASS: Record<Light, string> = { green: "ok", yellow: "warn", red: "
 function LightPill({ light }: { light: Light }) {
   // Color only; the name goes in aria-label and the tooltip for screen readers
   return <span className={`dot seg-${LIGHT_CLASS[light]}`} role="img" aria-label={LIGHT_LABEL[light]} title={LIGHT_LABEL[light]} />;
-}
-
-function ScoreBar({ h }: { h: ClientHealth }) {
-  return (
-    <span className="score" title={`Score ${h.score} de 100`}>
-      <span className="score-track"><span className={`score-fill seg-${LIGHT_CLASS[h.light]}`} style={{ width: `${h.score}%` }} /></span>
-      <span className="score-num">{h.score}</span>
-    </span>
-  );
-}
-
-
-// One bar per client (length = score 0-100, color = health color). The legend filters by color;
-// click a bar to highlight that client in the list below.
-function HealthChart({ all, rows, filter, onFilter, selected, onPick }: {
-  all: ClientHealth[]; rows: ClientHealth[]; filter: Light | null; onFilter: (l: Light | null) => void;
-  selected: string | null; onPick: (key: string) => void;
-}) {
-  if (all.length === 0) return null;
-  const lights: { light: Light; label: string }[] = [
-    { light: "green", label: "On track" },
-    { light: "yellow", label: "Needs Attention" },
-    { light: "red", label: "High Risk" },
-  ];
-  const bars = [...rows].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
-  return (
-    <figure className="hchart" aria-label="Client health chart">
-      <div className="legend">
-        {lights.map((m) => (
-          <button type="button" key={m.light} className={`chip${filter === m.light ? " on" : ""}`} onClick={() => onFilter(filter === m.light ? null : m.light)} aria-pressed={filter === m.light}>
-            <i className={`seg-${LIGHT_CLASS[m.light]}`} />{m.label}
-          </button>
-        ))}
-        {filter && <button type="button" className="chip clear" onClick={() => onFilter(null)}>Clear filter</button>}
-      </div>
-      <div className="hchart-bars">
-        {bars.map((h) => (
-          <button type="button" className={`hbar${selected === h.key ? " is-selected" : ""}`} key={h.key} onClick={() => onPick(h.key)} title={`${h.name}: score ${h.score} of 100. Click to highlight`}>
-            <span className="hbar-label">{h.name}</span>
-            <span className="hbar-track">
-              <span className={`hbar-fill seg-${LIGHT_CLASS[h.light]}`} style={{ width: `${h.score}%` }} />
-            </span>
-            <span className="hbar-num">{h.score}</span>
-            <span className="hbar-people">{headcount(h)} {headcount(h) === 1 ? "person" : "people"}</span>
-          </button>
-        ))}
-      </div>
-    </figure>
-  );
 }
