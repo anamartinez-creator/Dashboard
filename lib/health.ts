@@ -51,10 +51,10 @@ export function personFlag(e: Engineer): PersonFlag | null {
   if (e.status === "High Risk") { reasons.push("High Risk"); bump("red"); }
   if (e.status === "Needs Attention") { reasons.push("Needs Attention"); bump("yellow"); }
   if (e.pilotTracked && e.pilotDaysLeft !== null) {
-    if (e.pilotDaysLeft < 0 && e.status === "New Hire") { reasons.push(`Piloto vencido hace ${-e.pilotDaysLeft} d y sigue como New Hire`); bump("red"); }
-    else if (e.pilotDaysLeft >= 0 && e.pilotDaysLeft <= PILOT_WARN_DAYS) { reasons.push(`Piloto termina en ${e.pilotDaysLeft} d`); bump("yellow"); }
+    if (e.pilotDaysLeft < 0 && e.status === "New Hire") { reasons.push(`Pilot ended ${-e.pilotDaysLeft} d ago and still marked New Hire`); bump("red"); }
+    else if (e.pilotDaysLeft >= 0 && e.pilotDaysLeft <= PILOT_WARN_DAYS) { reasons.push(`Pilot ends in ${e.pilotDaysLeft} d`); bump("yellow"); }
   }
-  if (!e.cadence) { reasons.push("Sin cadencia de 1:1"); bump("yellow"); }
+  if (!e.cadence) { reasons.push("No 1:1 cadence"); bump("yellow"); }
   return level ? { engineer: e, level, reasons } : null;
 }
 
@@ -62,9 +62,9 @@ function scoreClient(name: string, url: string | null, status: string, unit: str
   const reasons: Reason[] = [];
   let score = 100;
 
-  if (status === "High Risk") { reasons.push({ level: "red", text: "Cliente en High Risk" }); score -= 40; }
-  else if (status === "Needs Attention") { reasons.push({ level: "yellow", text: "Cliente en Needs Attention" }); score -= 20; }
-  else if (status === "Pilot" || status === "New Client") reasons.push({ level: "info", text: `Cliente en ${status}` });
+  if (status === "High Risk") { reasons.push({ level: "red", text: "Client is High Risk" }); score -= 40; }
+  else if (status === "Needs Attention") { reasons.push({ level: "yellow", text: "Client is Needs Attention" }); score -= 20; }
+  else if (status === "Pilot" || status === "New Client") reasons.push({ level: "info", text: `Client is ${status}` });
 
   const hr = engineers.filter((e) => e.status === "High Risk");
   const na = engineers.filter((e) => e.status === "Needs Attention");
@@ -75,18 +75,18 @@ function scoreClient(name: string, url: string | null, status: string, unit: str
     if (s.status === "Signed") continue;
     const next = s.nextStep ? `: ${s.nextStep}` : "";
     if (s.status === "Pending") { reasons.push({ level: "red", text: `SOW Pending${next}` }); score -= 20; }
-    else if (s.status === "To confirm") { reasons.push({ level: "yellow", text: `SOW por confirmar${next}` }); score -= 12; }
-    else { reasons.push({ level: "yellow", text: `SOW enviado sin firmar${next}` }); score -= 8; }
+    else if (s.status === "To confirm") { reasons.push({ level: "yellow", text: `SOW to confirm${next}` }); score -= 12; }
+    else { reasons.push({ level: "yellow", text: `SOW sent, not signed${next}` }); score -= 8; }
   }
 
   const expired = engineers.filter((e) => e.pilotTracked && e.status === "New Hire" && e.pilotDaysLeft !== null && e.pilotDaysLeft < 0);
   const soon = engineers.filter((e) => e.pilotTracked && e.pilotDaysLeft !== null && e.pilotDaysLeft >= 0 && e.pilotDaysLeft <= PILOT_WARN_DAYS);
-  if (expired.length) { reasons.push({ level: "red", text: `Piloto vencido: ${names(expired)}` }); score -= 20; }
-  if (soon.length) { reasons.push({ level: "yellow", text: `Piloto termina en ${PILOT_WARN_DAYS} d o menos: ${names(soon)}` }); score -= 10; }
+  if (expired.length) { reasons.push({ level: "red", text: `Pilot expired: ${names(expired)}` }); score -= 20; }
+  if (soon.length) { reasons.push({ level: "yellow", text: `Pilot ends in ${PILOT_WARN_DAYS} d or less: ${names(soon)}` }); score -= 10; }
 
   const noCadence = engineers.filter((e) => !e.cadence);
   if (noCadence.length) {
-    reasons.push({ level: "yellow", text: `${noCadence.length} ${noCadence.length === 1 ? "persona sin" : "personas sin"} cadencia de 1:1` });
+    reasons.push({ level: "yellow", text: `${noCadence.length} ${noCadence.length === 1 ? "person" : "people"} without a 1:1 cadence` });
     score -= Math.min(15, 3 * noCadence.length);
   }
 
@@ -111,7 +111,7 @@ export function computeClientHealth(clients: Client[], engineers: Engineer[], so
       if (!rows.some((c) => sameClient(n, c.client))) orphan.set(n, [...(orphan.get(n) ?? []), e]);
   for (const [n, list] of orphan) {
     const h = scoreClient(n, null, "", "", null, list, sows.filter((s) => sameClient(s.client, n)));
-    h.reasons.unshift({ level: "info", text: "No está en Active Clients Status" });
+    h.reasons.unshift({ level: "info", text: "Not in Active Clients Status" });
     out.push(h);
   }
 

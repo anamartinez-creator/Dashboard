@@ -14,10 +14,10 @@ const tone = (s: string) =>
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
   const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("es-HN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 };
 
-// "12 nov 2026" or, when people start on different days, "12 nov – 30 nov 2026"
+// "Nov 12, 2026" or, when people start on different days, "Nov 12, 2026 – Nov 30, 2026"
 const range = (a: string | null, b: string | null) => {
   if (!a) return "—";
   if (!b || a === b) return fmtDate(a);
@@ -95,7 +95,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     const pilotKeys = new Set(pilotClients.map((p) => p.h.key));
     const m = new Map<string, { client: string; pilot: boolean; people: Engineer[] }>();
     for (const e of mine) {
-      for (const label of e.clients.length ? e.clients : ["Sin cliente"]) {
+      for (const label of e.clients.length ? e.clients : ["No client"]) {
         const match = health.find((h) => sameClient(h.name, label));
         const name = match?.name ?? label;
         const g = m.get(name) ?? { client: name, pilot: match ? pilotKeys.has(match.key) : false, people: [] };
@@ -137,37 +137,36 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     <main className="wrap">
       <header className="head">
         <div>
-          <h1>Health del delivery SDM</h1>
+          <h1>SDM Delivery Health</h1>
           <p className="lede">
-            <b>{lights.green}</b> clientes en verde, <b>{lights.yellow}</b> en amarillo y <b>{lights.red}</b> en rojo.{" "}
-            <b>{flags.length}</b> de <b>{counts.total}</b> personas requieren seguimiento.
+            <b>{lights.green}</b> clients green, <b>{lights.yellow}</b> yellow and <b>{lights.red}</b> red.{" "}
+            <b>{flags.length}</b> of <b>{counts.total}</b> people need follow-up.
           </p>
         </div>
-        <p className="owner">SDM: <b>{owner}</b><br />Sin Customer Success</p>
+        <p className="owner">SDM: <b>{owner}</b><br />Excludes Customer Success</p>
       </header>
 
       <div className="kpis">
-        <Kpi label="Clientes en verde" value={lights.green} sub="Sin alertas" />
-        <Kpi label="Clientes en amarillo" value={lights.yellow} sub="Requieren seguimiento" flag={lights.yellow > 0 ? "warn" : undefined} />
-        <Kpi label="Clientes en rojo" value={lights.red} sub="Acción necesaria" flag={lights.red > 0 ? "bad" : undefined} />
-        <Kpi label="Score promedio" value={avgScore} sub="De 0 a 100" />
-        <Kpi label="Needs Attention / High Risk" value={`${counts.attention} / ${counts.highRisk}`} sub="Personas" flag={risky > 0 ? "bad" : undefined} />
-        <Kpi label="Sin cadencia de 1:1" value={counts.noCadence} sub="Campo vacío en Notion" flag={counts.noCadence > 0 ? "warn" : undefined} />
+        <Kpi label="Green clients" value={lights.green} sub="No alerts" />
+        <Kpi label="Yellow clients" value={lights.yellow} sub="Need follow-up" flag={lights.yellow > 0 ? "warn" : undefined} />
+        <Kpi label="Red clients" value={lights.red} sub="Action needed" flag={lights.red > 0 ? "bad" : undefined} />
+        <Kpi label="Average score" value={avgScore} sub="Out of 100" />
+        <Kpi label="Needs Attention / High Risk" value={`${counts.attention} / ${counts.highRisk}`} sub="People" flag={risky > 0 ? "bad" : undefined} />
       </div>
 
       <section>
-        <h2>Health por cliente</h2>
+        <h2>Client health</h2>
         <p className="hint">
-          Clientes fuera de periodo de piloto. Primero los rojos, luego los amarillos. Rojo: High Risk, SOW Pending o piloto vencido. Amarillo: Needs Attention, SOW sin firmar, piloto que termina en {PILOT_WARN_DAYS} días o menos, o personas sin cadencia de 1:1.
-          El score (0 a 100) ordena dentro de cada color.
+          Clients outside the pilot period. Red first, then yellow. Red: High Risk, SOW Pending or expired pilot. Yellow: Needs Attention, unsigned SOW, pilot ending in {PILOT_WARN_DAYS} days or less, or people without a 1:1 cadence.
+          The score (0 to 100) orders clients within each color.
         </p>
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Cliente</th><th>Health</th><th>Score</th><th>Status en Notion</th><th>Personas</th><th>Motivos</th></tr>
+              <tr><th>Client</th><th>Health</th><th>Score</th><th>Notion status</th><th>People</th><th>Reasons</th></tr>
             </thead>
             <tbody>
-              {shownHealth.length === 0 && <EmptyRow cols={6} text="Ningún cliente en tu equipo." />}
+              {shownHealth.length === 0 && <EmptyRow cols={6} text="No clients on your team." />}
               {shownHealth.map((h) => (
                 <tr key={h.key}>
                   <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
@@ -177,7 +176,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   <td className="num">{h.engineers.length || h.headcount || "—"}</td>
                   <td className="wide">
                     {h.reasons.length === 0 ? (
-                      <span className="muted">Sin alertas</span>
+                      <span className="muted">No alerts</span>
                     ) : (
                       <ul className="reasons">
                         {h.reasons.map((r, i) => (
@@ -194,35 +193,31 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <section>
-        <h2>Clientes en periodo de piloto</h2>
-        <p className="hint">
-          Clientes con status Pilot en Notion o cuyas personas están todas en sus primeros 90 días. No aparecen en Health por cliente. Inicio y fin salen de la fecha de inicio y de Pilot End de cada persona
-          (si falta Pilot End, inicio + 90 días). Si las personas entran en fechas distintas se muestra el rango. VertexOne usa la fecha de inicio del cliente (16 nov) + 90 días; se cambia en lib/pilots.ts.
-        </p>
+        <h2>Clients in pilot period</h2>
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Cliente</th><th>Personas en piloto</th><th>Inicio</th><th>Fin</th><th>Estado</th></tr>
+              <tr><th>Client</th><th>People in pilot</th><th>Start</th><th>End</th><th>Status</th></tr>
             </thead>
             <tbody>
-              {pilotClients.length === 0 && <EmptyRow cols={5} text="Ningún cliente está en periodo de piloto." />}
+              {pilotClients.length === 0 && <EmptyRow cols={5} text="No clients are in a pilot period." />}
               {pilotClients.map((p) => (
                 <tr key={p.h.key}>
                   <td>{p.h.url ? <NameLink href={p.h.url}>{p.h.name}</NameLink> : p.h.name}</td>
                   <td className="wide">
-                    {p.ppl.length === 0 ? <span className="muted">Sin fechas en Notion</span> : <><b>{p.ppl.length}</b> <span className="muted">· {p.ppl.map((e) => e.name).join(", ")}</span></>}
+                    {p.ppl.length === 0 ? <span className="muted">No dates in Notion</span> : <><b>{p.ppl.length}</b> <span className="muted">· {p.ppl.map((e) => e.name).join(", ")}</span></>}
                   </td>
                   <td>{range(p.start, p.startLast)}</td>
                   <td>{range(p.endFirst, p.end)}</td>
                   <td>
                     {p.daysLeft === null ? (
-                      <Pill s="Sin fechas" className="info" />
+                      <Pill s="No dates" className="info" />
                     ) : p.notStarted ? (
-                      <Pill s={`Empieza en ${p.toStart} d`} className="info" />
+                      <Pill s={`Starts in ${p.toStart} d`} className="info" />
                     ) : p.daysLeft < 0 ? (
-                      <Pill s={`Terminó hace ${-p.daysLeft} d`} className="bad" />
+                      <Pill s={`Ended ${-p.daysLeft} d ago`} className="bad" />
                     ) : (
-                      <Pill s={`${p.daysLeft} d restantes`} className={p.daysLeft <= PILOT_WARN_DAYS ? "warn" : "ok"} />
+                      <Pill s={`${p.daysLeft} d left`} className={p.daysLeft <= PILOT_WARN_DAYS ? "warn" : "ok"} />
                     )}
                   </td>
                 </tr>
@@ -233,14 +228,14 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <section>
-        <h2>Salud del equipo</h2>
-        <p className="hint">Solo tu equipo. Las personas en dos clientes cuentan una sola vez.</p>
+        <h2>Team health</h2>
+        <p className="hint">Your team only. People on two clients are counted once.</p>
         <div className="legend">
           {statusMix.map((m) => (
             <span key={m.label}><i className={m.cls} />{m.label} ({m.n})</span>
           ))}
         </div>
-        <div className="mix" role="img" aria-label={"Estado del equipo: " + statusMix.map((m) => `${m.label} ${m.n}`).join(", ")}>
+        <div className="mix" role="img" aria-label={"Team status: " + statusMix.map((m) => `${m.label} ${m.n}`).join(", ")}>
           {statusMix.filter((m) => m.n > 0).map((m) => (
             <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
           ))}
@@ -248,19 +243,18 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <section>
-        <h2>Personas que requieren seguimiento</h2>
-        <p className="hint">High Risk, Needs Attention, piloto vencido o por vencer, o sin cadencia de 1:1. Debajo de los motivos va el último comentario de sus notas 1:1 en Notion, sin las líneas de bienestar, salud o familia.</p>
+        <h2>People who need follow-up</h2>
         <div className="tw">
           <table>
             <thead>
-              <tr><th>Persona</th><th>Prioridad</th><th>Cliente</th><th>SDM</th><th>Motivos</th></tr>
+              <tr><th>Person</th><th>Priority</th><th>Client</th><th>SDM</th><th>Reasons</th></tr>
             </thead>
             <tbody>
-              {flags.length === 0 && <EmptyRow cols={5} text="Nadie requiere seguimiento." />}
+              {flags.length === 0 && <EmptyRow cols={5} text="Nobody needs follow-up." />}
               {flags.map((f) => (
                 <tr key={f.engineer.id}>
                   <td><NameLink href={f.engineer.url}>{f.engineer.name}</NameLink></td>
-                  <td><Pill s={f.level === "red" ? "Alta" : "Media"} className={f.level === "red" ? "bad" : "warn"} /></td>
+                  <td><Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} /></td>
                   <td>{f.engineer.clients.join(", ") || "—"}</td>
                   <td className="muted">{f.engineer.sdms.join(", ") || "—"}</td>
                   <td className="wide">
@@ -268,7 +262,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                     {notes[f.engineer.id] && (
                       <div className="note">
                         <span className="note-head">
-                          Último 1:1{notes[f.engineer.id].date ? ` · ${fmtDate(notes[f.engineer.id].date)}` : ""}
+                          Last 1:1{notes[f.engineer.id].date ? ` · ${fmtDate(notes[f.engineer.id].date)}` : ""}
                           {notes[f.engineer.id].health ? ` · ${notes[f.engineer.id].health}` : ""}
                         </span>
                         {notes[f.engineer.id].comment && <p>{notes[f.engineer.id].comment}</p>}
@@ -283,20 +277,20 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <section>
-        <h2>Equipo por cliente</h2>
-        <p className="hint">Primero los clientes con más personas; dentro de cada uno, lo que necesita atención arriba. El nombre abre la página de la persona en Notion. Quien está en dos clientes aparece en ambos.</p>
-        {teamByClient.length === 0 && <p className="hint">Nadie asignado.</p>}
+        <h2>Team by client</h2>
+        <p className="hint">Clients with the most people first; within each, whoever needs attention comes first. The name opens the person's Notion page. People on two clients appear under both.</p>
+        {teamByClient.length === 0 && <p className="hint">Nobody assigned.</p>}
         <div className="groups">
           {teamByClient.map((g) => (
             <div className="group" key={g.client}>
               <h3>
-                {g.client} <span className="count">{g.people.length} {g.people.length === 1 ? "persona" : "personas"}</span>
-                {g.pilot && <Pill s="Piloto" className="info" />}
+                {g.client} <span className="count">{g.people.length} {g.people.length === 1 ? "person" : "people"}</span>
+                {g.pilot && <Pill s="Pilot" className="info" />}
               </h3>
               <div className="tw">
                 <table>
                   <thead>
-                    <tr><th>Persona</th><th>Status</th><th>Rol</th><th>1:1</th><th>Inicio</th><th>País</th></tr>
+                    <tr><th>Person</th><th>Status</th><th>Role</th><th>1:1</th><th>Start</th><th>Country</th></tr>
                   </thead>
                   <tbody>
                     {g.people.map((e) => (
@@ -304,7 +298,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                         <td><NameLink href={e.url}>{e.name}</NameLink></td>
                         <td><Pill s={e.status} /></td>
                         <td className="muted">{e.role || "—"}</td>
-                        <td className={e.cadence ? "" : "muted"}>{e.cadence ?? "Sin definir"}</td>
+                        <td className={e.cadence ? "" : "muted"}>{e.cadence ?? "Not set"}</td>
                         <td className="muted">{fmtDate(e.startDate)}</td>
                         <td className="muted">{e.location || "—"}</td>
                       </tr>
@@ -318,9 +312,9 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       </section>
 
       <footer className="foot">
-        Datos de Notion · Master SDM Tracker · actualizado{" "}
-        {new Date(loadedAt).toLocaleString("es-HN", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
-        {" · "}se actualiza solo cada minuto · <AutoRefresh />
+        Data from Notion · Master SDM Tracker · updated{" "}
+        {new Date(loadedAt).toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
+        {" · "}refreshes automatically every minute · <AutoRefresh />
       </footer>
     </main>
   );

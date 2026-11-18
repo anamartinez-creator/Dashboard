@@ -37,7 +37,7 @@ type NotionPage = { id: string; url: string; properties: Record<string, any> };
 
 async function queryAll(dataSourceId: string): Promise<NotionPage[]> {
   const token = process.env.NOTION_TOKEN;
-  if (!token) throw new Error("Falta la variable NOTION_TOKEN en Vercel.");
+  if (!token) throw new Error("The NOTION_TOKEN variable is missing in Vercel.");
   const pages: NotionPage[] = [];
   let cursor: string | undefined;
   do {
@@ -54,8 +54,8 @@ async function queryAll(dataSourceId: string): Promise<NotionPage[]> {
     if (!res.ok) {
       const body = await res.text();
       if (res.status === 404 || res.status === 403)
-        throw new Error("Notion no deja leer el tracker. Conecta la integración a la página Master SDM Tracker (••• → Connections).");
-      throw new Error(`Notion respondió ${res.status}: ${body.slice(0, 200)}`);
+        throw new Error("Notion won't let the integration read the tracker. Connect it to the Master SDM Tracker page (••• → Connections).");
+      throw new Error(`Notion responded ${res.status}: ${body.slice(0, 200)}`);
     }
     const json = await res.json();
     pages.push(...json.results);
@@ -106,7 +106,7 @@ export function mapEngineers(pages: NotionPage[], today = todayIso()): Engineer[
       return {
         id: p.id,
         url: p.url,
-        name: text(prop(p, "Engineer")) || "Sin nombre",
+        name: text(prop(p, "Engineer")) || "No name",
         status,
         clients: multi(prop(p, "Client")),
         role: text(prop(p, "Role")),

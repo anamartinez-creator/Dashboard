@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(req: NextRequest) {
   const password = process.env.DASHBOARD_PASSWORD;
   if (!password) {
-    return new NextResponse("Falta la variable DASHBOARD_PASSWORD en Vercel.", { status: 500 });
+    return new NextResponse("The DASHBOARD_PASSWORD variable is missing in Vercel.", { status: 500 });
   }
   const header = req.headers.get("authorization") ?? "";
   if (header.startsWith("Basic ")) {
@@ -15,7 +15,7 @@ export function middleware(req: NextRequest) {
       if (given.length === password.length && timingSafeEqual(given, password)) return NextResponse.next();
     } catch {}
   }
-  return new NextResponse("Necesitas la contraseña para ver este dashboard.", {
+  return new NextResponse("You need the password to view this dashboard.", {
     status: 401,
     headers: { "WWW-Authenticate": 'Basic realm="SDM Status", charset="UTF-8"' },
   });

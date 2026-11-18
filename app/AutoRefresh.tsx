@@ -35,7 +35,7 @@ export default function AutoRefresh() {
 
   return (
     <button type="button" className="refresh" onClick={() => refresh(true)} disabled={busy}>
-      {busy ? "Actualizando…" : "Actualizar ahora"}
+      {busy ? "Refreshing…" : "Refresh now"}
     </button>
   );
 }
