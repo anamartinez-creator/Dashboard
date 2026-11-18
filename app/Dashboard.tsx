@@ -226,19 +226,8 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                         {m.url ? <NameLink href={m.url}>{m.title}</NameLink> : m.title}
                         {m.notes && (
                           <div className="note">
-                            <span className="note-head">Last notes · {fmtDate(m.date)}</span>
-                            <p>{m.notes.summary}</p>
-                            <ul className="reasons">
-                              {m.notes.takeaways.map((t, i) => <li key={i}>{t}</li>)}
-                            </ul>
-                            {m.notes.nextSteps.length > 0 && (
-                              <>
-                                <span className="note-head">Next steps</span>
-                                <ul className="reasons">
-                                  {m.notes.nextSteps.map((t, i) => <li key={i}>{t}</li>)}
-                                </ul>
-                              </>
-                            )}
+                            <span className="note-head">Comment · {fmtDate(m.date)}</span>
+                            <p>{m.notes.comment}</p>
                           </div>
                         )}
                       </>
