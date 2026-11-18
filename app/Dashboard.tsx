@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Client, Engineer, Sow } from "@/lib/notion";
+import type { Client, Engineer, LatestNote, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
 import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
-type Props = { owner: string; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
+type Props = { owner: string; notes: Record<string, LatestNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
 const tone = (s: string) =>
   ({ "On track": "ok", Signed: "ok", "Needs Attention": "warn", Sent: "warn", "To confirm": "warn", "High Risk": "bad", Pending: "bad" } as Record<string, string>)[s] ?? "info";
@@ -36,7 +36,7 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ owner, engineers, sows, clients, loadedAt, today }: Props) {
+export default function Dashboard({ owner, notes, engineers, sows, clients, loadedAt, today }: Props) {
   const mine = engineers;
 
   const counts = useMemo(() => {
@@ -249,7 +249,7 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
 
       <section>
         <h2>Personas que requieren seguimiento</h2>
-        <p className="hint">High Risk, Needs Attention, piloto vencido o por vencer, o sin cadencia de 1:1.</p>
+        <p className="hint">High Risk, Needs Attention, piloto vencido o por vencer, o sin cadencia de 1:1. Debajo de los motivos va el último comentario de sus notas 1:1 en Notion, sin las líneas de bienestar, salud o familia.</p>
         <div className="tw">
           <table>
             <thead>
@@ -263,7 +263,18 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
                   <td><Pill s={f.level === "red" ? "Alta" : "Media"} className={f.level === "red" ? "bad" : "warn"} /></td>
                   <td>{f.engineer.clients.join(", ") || "—"}</td>
                   <td className="muted">{f.engineer.sdms.join(", ") || "—"}</td>
-                  <td className="wide">{f.reasons.join(" · ")}</td>
+                  <td className="wide">
+                    {f.reasons.join(" · ")}
+                    {notes[f.engineer.id] && (
+                      <div className="note">
+                        <span className="note-head">
+                          Último 1:1{notes[f.engineer.id].date ? ` · ${fmtDate(notes[f.engineer.id].date)}` : ""}
+                          {notes[f.engineer.id].health ? ` · ${notes[f.engineer.id].health}` : ""}
+                        </span>
+                        {notes[f.engineer.id].comment && <p>{notes[f.engineer.id].comment}</p>}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -337,7 +348,8 @@ const LIGHT_LABEL: Record<Light, string> = { green: "Verde", yellow: "Amarillo",
 const LIGHT_CLASS: Record<Light, string> = { green: "ok", yellow: "warn", red: "bad" };
 
 function LightPill({ light }: { light: Light }) {
-  return <span className={`pill ${LIGHT_CLASS[light]}`}>{LIGHT_LABEL[light]}</span>;
+  // Color only; the name goes in aria-label and the tooltip for screen readers
+  return <span className={`dot seg-${LIGHT_CLASS[light]}`} role="img" aria-label={LIGHT_LABEL[light]} title={LIGHT_LABEL[light]} />;
 }
 
 function ScoreBar({ h }: { h: ClientHealth }) {

@@ -2,7 +2,7 @@
 // Only the fields the dashboard shows leave this file: Salary Rate, Equipment,
 // Notes and similar fields are never sent to the browser.
 
-import { sameClient } from "./health";
+import { personFlag, sameClient } from "./health";
 
 const NOTION_VERSION = "2025-09-03";
 
@@ -148,6 +148,66 @@ export function mapClients(pages: NotionPage[]): Client[] {
     .sort((a, b) => order(a.status) - order(b.status) || a.client.localeCompare(b.client));
 }
 
+// --- Latest 1:1 note -------------------------------------------------------
+// Each person's page has a "1:1 Notes" table (Date / Health / Comments / Action
+// Items). For people who need follow-up we show the Comments of the newest row.
+// Lines about wellbeing, health, family or personal news are dropped on the server.
+
+export type LatestNote = { date: string | null; health: string; comment: string };
+
+const PERSONAL_LABEL = /wellbeing|well-being|health|announcement|family|personal|medical/i;
+export function stripPersonal(comment: string): string {
+  return comment
+    .split("\n")
+    .filter((line) => {
+      const m = line.match(/^\s*([^:]{1,40}):/);
+      return !(m && PERSONAL_LABEL.test(m[1]));
+    })
+    .join("\n")
+    .trim();
+}
+
+async function notionGet(path: string): Promise<any | null> {
+  const token = process.env.NOTION_TOKEN;
+  if (!token) return null;
+  try {
+    const res = await fetch(`https://api.notion.com/v1/${path}`, {
+      headers: { Authorization: `Bearer ${token}`, "Notion-Version": NOTION_VERSION },
+      next: { revalidate: 300 },
+    });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+const plain = (cell: any[] | undefined): string => (cell ?? []).map((t: any) => t.plain_text).join("");
+const cellDate = (cell: any[] | undefined): string | null => {
+  const m = (cell ?? []).find((t: any) => t.type === "mention" && t.mention?.type === "date");
+  return m?.mention?.date?.start?.slice(0, 10) ?? plain(cell).match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? null;
+};
+
+async function fetchLatestNote(pageId: string): Promise<LatestNote | null> {
+  const blocks = await notionGet(`blocks/${pageId}/children?page_size=100`);
+  const table = blocks?.results?.find((b: any) => b.type === "table");
+  if (!table) return null;
+  const rows = await notionGet(`blocks/${table.id}/children?page_size=100`);
+  const list: any[][][] = (rows?.results ?? []).filter((r: any) => r.type === "table_row").map((r: any) => r.table_row.cells);
+  if (list.length < 2) return null;
+  const header = list[0].map((c) => plain(c).toLowerCase());
+  const iDate = header.findIndex((h) => h.includes("date"));
+  const iHealth = header.findIndex((h) => h.includes("health"));
+  const iComment = header.findIndex((h) => h.includes("comment"));
+  if (iDate < 0 || iComment < 0) return null;
+  const body = list
+    .slice(1)
+    .map((cells) => ({ date: cellDate(cells[iDate]), health: iHealth >= 0 ? plain(cells[iHealth]) : "", comment: plain(cells[iComment]) }))
+    .filter((r) => r.comment.trim())
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  const r = body[0];
+  return r ? { date: r.date, health: cleanStatus(r.health), comment: stripPersonal(r.comment) } : null;
+}
+
 // This dashboard covers one SDM's side only (Ana Martinez by default; override
 // with the SDM_OWNER env var) and leaves out Customer Success clients.
 // Everything else is dropped here, so it never reaches the browser.
@@ -165,5 +225,18 @@ export async function loadTracker() {
     (x) => x.client && !EXCLUDED_UNITS.includes(x.unit) && engineers.some((p) => p.clients.some((n) => sameClient(n, x.client)))
   );
   const sows = mapSows(s).filter((x) => clients.some((cl) => sameClient(x.client, cl.client)));
-  return { owner: OWNER, engineers, sows, clients, loadedAt: new Date().toISOString(), today: todayIso() };
+
+  // Latest 1:1 note, only for people who need follow-up (4 at a time to respect Notion's rate limit)
+  const notes: Record<string, LatestNote> = {};
+  const flagged = engineers.filter((x) => personFlag(x));
+  for (let i = 0; i < flagged.length; i += 4) {
+    await Promise.all(
+      flagged.slice(i, i + 4).map(async (x) => {
+        const n = await fetchLatestNote(x.id);
+        if (n) notes[x.id] = n;
+      })
+    );
+  }
+
+  return { owner: OWNER, engineers, sows, clients, notes, loadedAt: new Date().toISOString(), today: todayIso() };
 }
