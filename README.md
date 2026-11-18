@@ -35,7 +35,7 @@ Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser 
 
 ## Alcance
 
-El dashboard solo muestra a las personas asignadas a Ana Martinez (columna `Assigned to`) y los clientes donde trabajan. Los clientes de Customer Success y todo lo de otros SDMs se descartan en el servidor, antes de llegar al navegador. Para usar otro SDM, agrega en Vercel la variable opcional `SDM_OWNER` con el nombre exacto como aparece en Notion.
+El dashboard muestra a las personas asignadas a Ana Martinez, Maria Salinas y Victor Reyes (columna `Assigned to`; la gente de Maria y Victor también cuenta en el headcount) y los clientes donde trabajan. Los clientes de Customer Success y todo lo de otros SDMs se descartan en el servidor, antes de llegar al navegador. Para cambiar el equipo, agrega en Vercel la variable opcional `SDM_TEAM` (nombres separados por coma, exactos como en Notion); `SDM_OWNER` solo cambia el nombre que se muestra y el SDM principal.
 
 ## Reglas de health
 

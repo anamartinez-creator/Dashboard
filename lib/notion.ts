@@ -212,6 +212,9 @@ async function fetchLatestNote(pageId: string): Promise<LatestNote | null> {
 // with the SDM_OWNER env var) and leaves out Customer Success clients.
 // Everything else is dropped here, so it never reaches the browser.
 const OWNER = process.env.SDM_OWNER || "Ana Martinez";
+// People assigned to these SDMs all count: Maria and Victor manage their own people inside Ana's organization.
+// Override with SDM_TEAM (comma separated, names exactly as in Notion).
+const TEAM = (process.env.SDM_TEAM || `${OWNER}, Maria Salinas, Victor Reyes`).split(",").map((n) => n.trim()).filter(Boolean);
 const EXCLUDED_UNITS = ["Customer Success"];
 
 export async function loadTracker() {
@@ -220,7 +223,7 @@ export async function loadTracker() {
     queryAll(DATA_SOURCES.sows),
     queryAll(DATA_SOURCES.clients),
   ]);
-  const engineers = mapEngineers(e).filter((x) => x.sdms.includes(OWNER));
+  const engineers = mapEngineers(e).filter((x) => x.sdms.some((n) => TEAM.includes(n.trim())));
   const clients = mapClients(c).filter(
     (x) => x.client && !EXCLUDED_UNITS.includes(x.unit) && engineers.some((p) => p.clients.some((n) => sameClient(n, x.client)))
   );
