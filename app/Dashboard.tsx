@@ -422,30 +422,27 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
       <section id="sec-people-client">
         <h2>People by client</h2>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr><th>Client</th><th className="center">People</th><th>Team</th></tr>
-            </thead>
-            <tbody>
-              {health.filter((h) => h.engineers.length > 0).map((h) => (
-                <tr key={h.key}>
-                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
-                  <td className="center">{h.engineers.length}</td>
-                  <td className="wide">
-                    <ul className="plist">
-                      {[...h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => (
-                        <li key={e.id}>
-                          <NameLink href={e.url}>{e.name}</NameLink>
-                          {e.role && <span className="muted"> · {e.role}</span>} <Pill s={e.status} />
-                        </li>
-                      ))}
-                    </ul>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="pgrid">
+          {health.filter((h) => h.engineers.length > 0).map((h) => (
+            <article key={h.key} className={`pc pc-${LIGHT_CLASS[h.light]}`}>
+              <header className="pc-head">
+                <h3>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</h3>
+                <span className="pc-count" title={`${h.engineers.length} people`}>{h.engineers.length}</span>
+              </header>
+              <ul className="pc-list">
+                {[...h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => (
+                  <li key={e.id}>
+                    <span className="avatar" aria-hidden="true">{e.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()}</span>
+                    <span className="who">
+                      <NameLink href={e.url}>{e.name}</NameLink>
+                      <small>{e.role || "—"}</small>
+                    </span>
+                    <Pill s={e.status} />
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
         </div>
       </section>
 
