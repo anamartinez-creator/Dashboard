@@ -95,3 +95,11 @@ Para comprobar que compila antes de subir: `npm run build`.
 - `app/api/notion-webhook/route.ts`: recibe los avisos de Notion y refresca los datos.
 - `app/api/refresh/route.ts`: el botón "Actualizar ahora".
 - `.env.example`: plantilla de las variables de entorno.
+
+## Client meetings (snapshot)
+
+La sección "Client meetings" lee `lib/client-meetings.ts`, una lista manual (fecha, fuente, enlace) de la última reunión con cada cliente, tomada de Fathom y Google Calendar al 2026-11-18. Hoy solo cubre Sparkfire, Barosa y OTR Solutions; el resto aparece sin dato. Actualiza el archivo para añadir más.
+
+## Estilo
+
+El formato sigue la guía de marca de Puzzle: Puzzle Blue `#00406C`, Signal Cyan `#29ABE0`, Grow Green `#8CC63F`, Ink `#001828` y Paper `#FCFCFC`; titulares en Omnes (si está instalada, si no Poppins) y texto en Poppins; fondos planos, sin sombras ni gradientes. Los colores del semáforo (verde, ámbar, rojo) se mantienen porque comunican estado.

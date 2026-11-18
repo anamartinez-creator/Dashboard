@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { Client, Engineer, LatestNote, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
+import { CLIENT_MEETINGS, MEETINGS_AS_OF, MEETINGS_SEARCHED_SINCE } from "@/lib/client-meetings";
 import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
 type Props = { owner: string; notes: Record<string, LatestNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
@@ -81,6 +82,17 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => (a.end ?? "9999").localeCompare(b.end ?? "9999") || a.h.name.localeCompare(b.h.name));
+  }, [health, today]);
+
+  // Last client meeting per client (all of them, pilot included), longest without contact first
+  const meetingRows = useMemo(() => {
+    const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+    return health
+      .map((h) => {
+        const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
+        return { h, m, ago: m ? dayDiff(m.date, today) : null };
+      })
+      .sort((a, b) => (a.ago === null ? 1 : 0) - (b.ago === null ? 1 : 0) || (b.ago ?? 0) - (a.ago ?? 0) || a.h.name.localeCompare(b.h.name));
   }, [health, today]);
 
   // Clients in pilot have their own section; the health list is for the rest
@@ -185,6 +197,30 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                       </ul>
                     )}
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Client meetings</h2>
+        <p className="hint">Last client check-in per client, from Fathom and Google Calendar (searched since {fmtDate(MEETINGS_SEARCHED_SINCE)}). Snapshot as of {fmtDate(MEETINGS_AS_OF)}.</p>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th>Client</th><th>Last met</th><th>Days ago</th><th>Source</th><th>Meeting</th></tr>
+            </thead>
+            <tbody>
+              {meetingRows.length === 0 && <EmptyRow cols={5} text="No clients." />}
+              {meetingRows.map(({ h, m, ago }) => (
+                <tr key={h.key}>
+                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
+                  <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
+                  <td>{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d`} className={ago > 30 ? "warn" : "info"} />}</td>
+                  <td className="muted">{m?.source ?? "—"}</td>
+                  <td className="wide">{m ? (m.url ? <NameLink href={m.url}>{m.title}</NameLink> : m.title) : <span className="muted">No client meeting found</span>}</td>
                 </tr>
               ))}
             </tbody>
