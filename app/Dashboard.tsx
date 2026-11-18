@@ -101,7 +101,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     const inPilot = new Set(pilotClients.map((p) => p.h.key));
     const rows = health.map((h) => {
       const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
-      return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key) };
+      return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key), pilotInfo: pilotClients.find((x) => x.h.key === h.key) ?? null };
     });
     return [...rows.filter((r) => !r.pilot), ...rows.filter((r) => r.pilot).sort((a, b) => a.h.name.localeCompare(b.h.name))];
   }, [health, pilotClients, today]);
@@ -205,15 +205,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                   <td>{range(p.start, p.startLast)}</td>
                   <td>{range(p.endFirst, p.end)}</td>
                   <td>
-                    {p.daysLeft === null ? (
-                      <Pill s="No dates" className="info" />
-                    ) : p.notStarted ? (
-                      <Pill s={`Starts in ${p.toStart} d`} className="info" />
-                    ) : p.daysLeft < 0 ? (
-                      <Pill s={`Ended ${-p.daysLeft} d ago`} className="bad" />
-                    ) : (
-                      <Pill s={`${p.daysLeft} d left`} className={p.daysLeft <= PILOT_WARN_DAYS ? "warn" : "ok"} />
-                    )}
+                    <PilotTag p={p} />
                   </td>
                 </tr>
               ))}
@@ -236,13 +228,13 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           <table>
             <thead>
               <tr>
-                <th>Client</th><th className="center">Health</th><th className="center">People</th>
+                <th>Client</th><th className="center">Health</th><th className="center">People</th><th>Pilot period</th>
                 <th>Last contact</th><th className="center">Days ago</th><th>Why and latest comment</th>
               </tr>
             </thead>
             <tbody>
-              {visibleRows.length === 0 && <EmptyRow cols={6} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
-              {visibleRows.map(({ h, m, ago, pilot }) => {
+              {visibleRows.length === 0 && <EmptyRow cols={7} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
+              {visibleRows.map(({ h, m, ago, pilot, pilotInfo }) => {
                 const open = selected === h.key;
                 const recent = m?.notes && ago !== null && ago <= 31;
                 return (
@@ -250,6 +242,14 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                     <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
                     <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <LightPill light={h.light} />}</td>
                     <td className="center">{headcount(h) || "—"}</td>
+                    <td>
+                      {pilotInfo ? (
+                        <>
+                          {range(pilotInfo.start, pilotInfo.end)}
+                          <div><PilotTag p={pilotInfo} /></div>
+                        </>
+                      ) : <span className="muted">—</span>}
+                    </td>
                     <td className={m ? "" : "muted"}>{m ? fmtDate(m.date) : "Not found"}</td>
                     <td className="center">{ago === null ? <span className="muted">—</span> : <Pill s={`${ago} d ago`} className={ago > 30 ? "warn" : "info"} />}</td>
                     <td className="wide">
@@ -380,6 +380,14 @@ function Kpi({ label, value, sub, flag, onClick }: { label: string; value: numbe
 
 // People on the client: the engineers found in Notion, else the headcount typed on the client page
 const headcount = (h: ClientHealth) => h.engineers.length || h.headcount || 0;
+
+// "88 d left", "Starts in 3 d", "Ended 5 d ago"
+function PilotTag({ p }: { p: { daysLeft: number | null; notStarted: boolean; toStart: number | null } }) {
+  if (p.daysLeft === null) return <Pill s="No dates" className="info" />;
+  if (p.notStarted) return <Pill s={`Starts in ${p.toStart} d`} className="info" />;
+  if (p.daysLeft < 0) return <Pill s={`Ended ${-p.daysLeft} d ago`} className="bad" />;
+  return <Pill s={`${p.daysLeft} d left`} className={p.daysLeft <= PILOT_WARN_DAYS ? "warn" : "ok"} />;
+}
 
 function EmptyRow({ cols, text }: { cols: number; text: string }) {
   return (
