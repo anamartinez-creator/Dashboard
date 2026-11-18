@@ -224,12 +224,13 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                     {m ? (
                       <>
                         {m.url ? <NameLink href={m.url}>{m.title}</NameLink> : m.title}
-                        {m.notes && (
+                        {m.notes && ago !== null && ago <= 31 && (
                           <div className="note">
                             <span className="note-head">Comment · {fmtDate(m.date)}</span>
                             <p>{m.notes.comment}</p>
                           </div>
                         )}
+                        {(!m.notes || ago === null || ago > 31) && <div className="muted">No notes from the last month</div>}
                       </>
                     ) : <span className="muted">No client meeting found</span>}
                   </td>

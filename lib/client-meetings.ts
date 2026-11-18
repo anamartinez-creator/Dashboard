@@ -3,6 +3,7 @@
 // the client on the invite), and it is refreshed by hand. Client names are matched
 // loosely ("Vertex" = "VertexOne"). Clients without an entry show "Not found".
 
+// Comments are only shown for meetings from the last month (see Dashboard).
 // One high-level comment per meeting, written from the Fathom summary. Individual
 // performance and other personal comments are left out on purpose.
 export type MeetingNotes = { comment: string };
@@ -12,6 +13,8 @@ export const MEETINGS_AS_OF = "2026-11-18";
 export const MEETINGS_SEARCHED_SINCE = "2026-09-01";
 
 export const CLIENT_MEETINGS: ClientMeeting[] = [
+  { client: "VertexOne", date: "2026-11-18", source: "Fathom", title: "Puzzle | Vertex Hiring Sync", url: "https://fathom.video/calls/905421605",
+    notes: { comment: "Aligned on hiring a Contract Admin (temp-to-perm) for a small team with 26 deals to close by Dec 18. Sourcing is on hold until Vertex's legal review on non-US handling of US client data; Puzzle can deliver candidates within a week of the JD." } },
   { client: "Sparkfire", date: "2026-11-13", source: "Fathom + Calendar", title: "Sparkfire | Puzzle Check In", url: "https://fathom.video/calls/899342744",
     notes: { comment: "Positive check-in focused on retaining the full team for 2027 (roadmap, 1-on-1s, planned year-end bonus). Puzzle's new internship program was introduced as a hiring option." } },
   { client: "Barosa", date: "2026-10-19", source: "Fathom + Calendar", title: "Barosa | Puzzle - Check In", url: "https://fathom.video/calls/864942133",
