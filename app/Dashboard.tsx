@@ -54,18 +54,15 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
 
-  // Interactivity for Active Client Health: filter by color, pick a client, sort columns
+  // Interactivity for Active Client Health: filter by color, pick a client
   const [lightFilter, setLightFilter] = useState<Light | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [teamQuery, setTeamQuery] = useState("");
   const [teamDetails, setTeamDetails] = useState(false);
-  const [sort, setSort] = useState<{ by: "health" | "name" | "score"; dir: 1 | -1 }>({ by: "health", dir: 1 });
   const pickClient = (key: string) => {
     setSelected((cur) => (cur === key ? null : key));
     document.getElementById(`row-${key}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
-  const toggleSort = (by: "health" | "name" | "score") =>
-    setSort((cur) => (cur.by === by ? { by, dir: (cur.dir * -1) as 1 | -1 } : { by, dir: by === "score" ? -1 : 1 }));
 
   // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
   // Dates come from the people: first start and last end among those in pilot.
@@ -114,11 +111,9 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     return health.filter((h) => !inPilot.has(h.key));
   }, [health, pilotClients]);
 
-  const visibleHealth = useMemo(() => {
-    const rows = shownHealth.filter((h) => !lightFilter || h.light === lightFilter);
-    if (sort.by === "health") return rows; // already red / yellow / green, then score
-    return [...rows].sort((a, b) => sort.dir * (sort.by === "score" ? a.score - b.score : a.name.localeCompare(b.name)));
-  }, [shownHealth, lightFilter, sort]);
+  const visibleHealth = useMemo(() => shownHealth.filter((h) => !lightFilter || h.light === lightFilter), [shownHealth, lightFilter]);
+  // Only clients with alerts get listed under the chart (plus the one picked in the chart)
+  const alertRows = useMemo(() => visibleHealth.filter((h) => h.reasons.length > 0 || h.light !== "green" || h.key === selected), [visibleHealth, selected]);
 
   // Status board: people grouped by their own status. Each chip shows the client(s), named as
   // in Active Clients Status. Whoever needs help comes first.
@@ -199,41 +194,28 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       <section>
         <h2>Active Client Health</h2>
         <HealthChart all={shownHealth} rows={visibleHealth} filter={lightFilter} onFilter={setLightFilter} selected={selected} onPick={pickClient} />
-        <div className="tw">
-          <table>
-            <thead>
-              <tr>
-                <SortTh label="Client" active={sort.by === "name"} dir={sort.dir} onClick={() => toggleSort("name")} />
-                <SortTh label="Health" active={sort.by === "health"} dir={sort.dir} onClick={() => setSort({ by: "health", dir: 1 })} />
-                <SortTh label="Score" active={sort.by === "score"} dir={sort.dir} onClick={() => toggleSort("score")} />
-                <th>Notion status</th><th className="center">People</th><th>Reasons</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleHealth.length === 0 && <EmptyRow cols={6} text={lightFilter ? "No clients with this color." : "No clients on your team."} />}
-              {visibleHealth.map((h) => (
-                <tr key={h.key} id={`row-${h.key}`} className={`clickable${selected === h.key ? " is-selected" : ""}`} onClick={() => setSelected((cur) => (cur === h.key ? null : h.key))}>
-                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
-                  <td><LightPill light={h.light} /></td>
-                  <td><ScoreBar h={h} /></td>
-                  <td className="muted">{h.status || "—"}</td>
-                  <td className="center">{h.engineers.length || h.headcount || "—"}</td>
-                  <td className="wide">
-                    {h.reasons.length === 0 ? (
-                      <span className="muted">No alerts</span>
-                    ) : (
-                      <ul className="reasons">
-                        {h.reasons.map((r, i) => (
-                          <li key={i} className={`r-${r.level}`}>{r.text}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </td>
-                </tr>
+        {alertRows.length > 0 && (
+          <div className="alerts">
+            <h3>Needs action</h3>
+            <ul>
+              {alertRows.map((h) => (
+                <li key={h.key} id={`row-${h.key}`} className={selected === h.key ? "is-selected" : ""}>
+                  <span className="alert-name"><LightPill light={h.light} /> {h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</span>
+                  {h.reasons.length === 0 ? (
+                    <span className="muted">No alerts</span>
+                  ) : (
+                    <ul className="reasons">
+                      {h.reasons.map((r, i) => (
+                        <li key={i} className={`r-${r.level}`}>{r.text}</li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </ul>
+          </div>
+        )}
+        {visibleHealth.length === 0 && <p className="hint">{lightFilter ? "No clients with this color." : "No clients on your team."}</p>}
       </section>
 
       <section>
@@ -436,52 +418,28 @@ function ScoreBar({ h }: { h: ClientHealth }) {
 }
 
 
-function SortTh({ label, active, dir, onClick }: { label: string; active: boolean; dir: 1 | -1; onClick: () => void }) {
-  return (
-    <th aria-sort={active ? (dir === 1 ? "ascending" : "descending") : "none"}>
-      <button type="button" className={`sort${active ? " on" : ""}`} onClick={onClick}>
-        {label}<span aria-hidden="true">{active ? (dir === 1 ? " ▲" : " ▼") : ""}</span>
-      </button>
-    </th>
-  );
-}
-
-// Visual summary of client health: how many clients per color (click to filter), and one bar
-// per client (length = score 0-100, color = health light; click to highlight its row below).
+// One bar per client (length = score 0-100, color = health color). The legend filters by color;
+// click a bar to highlight that client in the list below.
 function HealthChart({ all, rows, filter, onFilter, selected, onPick }: {
   all: ClientHealth[]; rows: ClientHealth[]; filter: Light | null; onFilter: (l: Light | null) => void;
   selected: string | null; onPick: (key: string) => void;
 }) {
   if (all.length === 0) return null;
-  const n = (l: Light) => all.filter((h) => h.light === l).length;
-  const mix: { light: Light; label: string; count: number }[] = [
-    { light: "green", label: "On track", count: n("green") },
-    { light: "yellow", label: "Needs Attention", count: n("yellow") },
-    { light: "red", label: "High Risk", count: n("red") },
+  const lights: { light: Light; label: string }[] = [
+    { light: "green", label: "On track" },
+    { light: "yellow", label: "Needs Attention" },
+    { light: "red", label: "High Risk" },
   ];
-  const toggle = (l: Light) => onFilter(filter === l ? null : l);
   const bars = [...rows].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   return (
     <figure className="hchart" aria-label="Client health chart">
-      <div className="hchart-mix">
-        <div className="mix" role="group" aria-label="Filter clients by color">
-          {mix.filter((m) => m.count > 0).map((m) => (
-            <button
-              type="button" key={m.light}
-              className={`mix-seg seg-${LIGHT_CLASS[m.light]}${filter && filter !== m.light ? " dim" : ""}`}
-              style={{ flex: m.count }} onClick={() => toggle(m.light)}
-              aria-pressed={filter === m.light} title={`${m.count} ${m.label}. Click to filter`}
-            />
-          ))}
-        </div>
-        <div className="legend">
-          {mix.map((m) => (
-            <button type="button" key={m.light} className={`chip${filter === m.light ? " on" : ""}`} onClick={() => toggle(m.light)} aria-pressed={filter === m.light}>
-              <i className={`seg-${LIGHT_CLASS[m.light]}`} />{m.label} {m.count}
-            </button>
-          ))}
-          {filter && <button type="button" className="chip clear" onClick={() => onFilter(null)}>Clear filter</button>}
-        </div>
+      <div className="legend">
+        {lights.map((m) => (
+          <button type="button" key={m.light} className={`chip${filter === m.light ? " on" : ""}`} onClick={() => onFilter(filter === m.light ? null : m.light)} aria-pressed={filter === m.light}>
+            <i className={`seg-${LIGHT_CLASS[m.light]}`} />{m.label}
+          </button>
+        ))}
+        {filter && <button type="button" className="chip clear" onClick={() => onFilter(null)}>Clear filter</button>}
       </div>
       <div className="hchart-bars">
         {bars.map((h) => (
