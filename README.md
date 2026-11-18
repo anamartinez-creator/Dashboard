@@ -1,6 +1,6 @@
 # Health del delivery SDM
 
-Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, clientes en periodo de piloto (inicio y fin), salud del equipo, personas que requieren seguimiento y pilotos de 90 días. Muestra solo el equipo de un SDM (Ana Martinez por defecto) y deja fuera a Customer Success. Está protegido con contraseña.
+Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, clientes en periodo de piloto (inicio y fin), salud del equipo, personas que requieren seguimiento. Muestra solo el equipo de un SDM (Ana Martinez por defecto) y deja fuera a Customer Success. Está protegido con contraseña.
 
 Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`).
 

@@ -51,15 +51,6 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
     return c;
   }, [mine]);
 
-  // Pilots that end within 30 days, ended in the last 30, or haven't started yet
-  const pilots = useMemo(
-    () =>
-      mine
-        .filter((e) => e.pilotDaysLeft !== null && e.pilotDaysLeft >= -30 && e.pilotDaysLeft <= 120 && (e.pilotDaysLeft <= 30 || e.pilotDaysLeft > 90))
-        .sort((a, b) => (a.pilotDaysLeft ?? 0) - (b.pilotDaysLeft ?? 0)),
-    [mine]
-  );
-
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
   const shownHealth = health;
 
@@ -251,38 +242,6 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
                   <td className="wide">{f.reasons.join(" · ")}</td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section>
-        <h2>Pilotos de 90 días</h2>
-        <p className="hint">Personas cuyo piloto (inicio + 90 días) termina en los próximos 30 días, terminó hace menos de 30, o que todavía no empiezan.</p>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr><th>Persona</th><th>Cliente</th><th>Inicio</th><th>Fin del piloto</th><th>Días</th></tr>
-            </thead>
-            <tbody>
-              {pilots.length === 0 && <EmptyRow cols={5} text="Ningún piloto termina cerca de hoy." />}
-              {pilots.map((e) => {
-                const d = e.pilotDaysLeft ?? 0;
-                return (
-                  <tr key={e.id}>
-                    <td><NameLink href={e.url}>{e.name}</NameLink></td>
-                    <td>{e.clients.join(", ") || "—"}</td>
-                    <td>{fmtDate(e.startDate)}</td>
-                    <td>{fmtDate(e.pilotEnd)}</td>
-                    <td>
-                      <Pill
-                        s={d < 0 ? `Terminó hace ${-d} d` : d > 90 ? `Empieza en ${d - 90} d` : `${d} d`}
-                        className={d < 0 ? "bad" : d <= 30 ? "warn" : "info"}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
             </tbody>
           </table>
         </div>
