@@ -178,27 +178,23 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div>
           <h1>SDM Delivery Health</h1>
           <p className="lede">
-            <b>{lights.green}</b> clients green, <b>{lights.yellow}</b> yellow and <b>{lights.red}</b> red.{" "}
+            <b>{lights.green}</b> clients on track, <b>{lights.yellow}</b> need attention and <b>{lights.red}</b> high risk.{" "}
             <b>{flags.length}</b> of <b>{counts.total}</b> people need follow-up.
           </p>
         </div>
-        <p className="owner">SDM: <b>{owner}</b><br />Excludes Customer Success</p>
+        <p className="owner">SDM: <b>{owner}</b></p>
       </header>
 
       <div className="kpis">
-        <Kpi label="On track clients" value={lights.green} sub="No alerts" />
-        <Kpi label="Yellow clients" value={lights.yellow} sub="Need follow-up" flag={lights.yellow > 0 ? "warn" : undefined} />
-        <Kpi label="Red clients" value={lights.red} sub="Action needed" flag={lights.red > 0 ? "bad" : undefined} />
+        <Kpi label="On track" value={lights.green} sub="No alerts" />
+        <Kpi label="Needs Attention" value={lights.yellow} sub="Need follow-up" flag={lights.yellow > 0 ? "warn" : undefined} />
+        <Kpi label="High Risk" value={lights.red} sub="Action needed" flag={lights.red > 0 ? "bad" : undefined} />
         <Kpi label="Average score" value={avgScore} sub="Out of 100" />
-        <Kpi label="Needs Attention / High Risk" value={`${counts.attention} / ${counts.highRisk}`} sub="People" flag={risky > 0 ? "bad" : undefined} />
+        <Kpi label="People" value={`${counts.attention} / ${counts.highRisk}`} sub="Needs Attention / High Risk" flag={risky > 0 ? "bad" : undefined} />
       </div>
 
       <section>
         <h2>Active Client Health</h2>
-        <p className="hint">
-          Clients outside the pilot period. Red first, then yellow. Red: High Risk, SOW Pending or expired pilot. Yellow: Needs Attention, unsigned SOW, pilot ending in {PILOT_WARN_DAYS} days or less, or people without a 1:1 cadence.
-          The score (0 to 100) orders clients within each color.
-        </p>
         <HealthChart all={shownHealth} rows={visibleHealth} filter={lightFilter} onFilter={setLightFilter} selected={selected} onPick={pickClient} />
         <div className="tw">
           <table>
@@ -427,7 +423,7 @@ function EmptyRow({ cols, text }: { cols: number; text: string }) {
   );
 }
 
-const LIGHT_LABEL: Record<Light, string> = { green: "On track", yellow: "Yellow", red: "Red" };
+const LIGHT_LABEL: Record<Light, string> = { green: "On track", yellow: "Needs Attention", red: "High Risk" };
 const LIGHT_CLASS: Record<Light, string> = { green: "ok", yellow: "warn", red: "bad" };
 
 function LightPill({ light }: { light: Light }) {
@@ -465,8 +461,8 @@ function HealthChart({ all, rows, filter, onFilter, selected, onPick }: {
   const n = (l: Light) => all.filter((h) => h.light === l).length;
   const mix: { light: Light; label: string; count: number }[] = [
     { light: "green", label: "On track", count: n("green") },
-    { light: "yellow", label: "Yellow", count: n("yellow") },
-    { light: "red", label: "Red", count: n("red") },
+    { light: "yellow", label: "Needs Attention", count: n("yellow") },
+    { light: "red", label: "High Risk", count: n("red") },
   ];
   const toggle = (l: Light) => onFilter(filter === l ? null : l);
   const bars = [...rows].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
