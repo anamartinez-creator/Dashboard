@@ -258,24 +258,40 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                 <input className="map-search" type="search" placeholder="Search a client or person…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search clients or people" />
               </div>
 
-              {quick === "all" && <div className="map" role="list">
-                {mapRows.map((r) => {
+              {quick === "all" && (
+              <div className="groups-map">
+                {(() => {
+                  const groups: { key: string; label: string; rows: typeof mapRows }[] = [
+                    { key: "bad", label: "High Risk", rows: mapRows.filter((r) => !r.pilot && r.h.light === "red") },
+                    { key: "warn", label: "Needs Attention", rows: mapRows.filter((r) => !r.pilot && r.h.light === "yellow") },
+                    { key: "pilot", label: "Pilot", rows: mapRows.filter((r) => r.pilot) },
+                    { key: "ok", label: "On track", rows: mapRows.filter((r) => !r.pilot && r.h.light === "green") },
+                  ];
+                  return groups.filter((g) => g.rows.length > 0).map((g) => (
+                    <div className="mgroup" key={g.key}>
+                      <h3 className={`mgroup-h mg-${g.key}`}>{g.label}<span>{g.rows.length}</span></h3>
+                      <div className="map" role="list">
+                        {g.rows.map((r) => {
                   const pi = r.pilotInfo;
-                  const sub = pi
-                    ? pi.notStarted ? `Pilot starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot period ended" : `Pilot · ${pi.daysLeft} days left`
-                    : r.ago !== null ? `Last contact ${r.ago === 0 ? "today" : `${r.ago} days ago`}` : "No contact on record";
-                  const n = headcount(r.h);
-                  return (
-                    <button type="button" role="listitem" key={r.h.key} className={`tile tile-${LIGHT_CLASS[r.h.light]}${openKey === r.h.key ? " open" : ""}`} onClick={() => setOpenKey(r.h.key)}>
-                      <span className="tile-top"><LightPill light={r.h.light} />{r.pilot && <span className="tag">Pilot</span>}</span>
-                      <span className="tile-name">{r.h.name}</span>
-                      <span className="tile-meta"><b>{n || "—"}</b> {n === 1 ? "person" : "people"}</span>
-                      <span className="tile-sub">{sub}</span>
-                    </button>
-                  );
-                })}
-                {mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
-              </div>}
+                          const sub = pi
+                            ? pi.notStarted ? `Pilot starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot period ended" : `Pilot · ${pi.daysLeft} days left`
+                            : r.ago !== null ? `Last contact ${r.ago === 0 ? "today" : `${r.ago} days ago`}` : "No contact on record";
+                          const n = headcount(r.h);
+                          return (
+                            <button type="button" role="listitem" key={r.h.key} className={`tile tile-${LIGHT_CLASS[r.h.light]}${openKey === r.h.key ? " open" : ""}`} onClick={() => setOpenKey(r.h.key)}>
+                              <span className="tile-top"><LightPill light={r.h.light} />{r.pilot && <span className="tag">Pilot</span>}</span>
+                              <span className="tile-name">{r.h.name}</span>
+                              <span className="tile-meta"><b>{n || "—"}</b> {n === 1 ? "person" : "people"}</span>
+                              <span className="tile-sub">{sub}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+              )}
               {quick !== "all" && mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
             </section>
 
@@ -358,23 +374,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </>
             )}
 
-            {quick === "all" && pilotClients.length > 0 && (
-              <section>
-                <h2>Pilots</h2>
-                <div className="pilot-cards">
-                  {pilotClients.map((p) => {
-                    const pct = p.daysLeft === null || p.notStarted ? 0 : Math.max(0, Math.min(100, ((PILOT_DAYS - p.daysLeft) / PILOT_DAYS) * 100));
-                    return (
-                      <div className="pilot-card" key={p.h.key}>
-                        <div className="ov-head"><h3>{p.h.name}</h3><PilotTag p={p} /></div>
-                        <div className="pilot-track" role="img" aria-label={`${Math.round(pct)}% of the pilot elapsed`}><span style={{ width: `${pct}%` }} /></div>
-                        <p className="ov-sub">{range(p.start, p.end)} · {headcount(p.h) || "—"} {headcount(p.h) === 1 ? "person" : "people"}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
 
             {quick === "all" && recentComments.length > 0 && (
               <section>

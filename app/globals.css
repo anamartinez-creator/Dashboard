@@ -410,3 +410,12 @@ h2.brief-title::before { display: none; }
 .detail .reasons li::before { top: 11px; }
 .detail-pilot { margin: 0 0 10px; }
 .detail-pilot-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.groups-map { display: flex; flex-direction: column; gap: 26px; }
+.mgroup-h { font-family: var(--head-font); font-size: 17px; color: var(--blue); margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+.mgroup-h::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--seg-muted); }
+.mgroup-h.mg-bad::before { background: var(--bad); }
+.mgroup-h.mg-warn::before { background: var(--warn); }
+.mgroup-h.mg-ok::before { background: var(--ok); }
+.mgroup-h.mg-pilot::before { background: var(--cyan); }
+.mgroup-h span { min-width: 24px; height: 24px; padding: 0 8px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
