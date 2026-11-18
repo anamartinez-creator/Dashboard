@@ -342,38 +342,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </>
             )}
 
-            <section>
-              <h2>Needs action</h2>
-              <div className="ov-grid">
-                <div className="ov-card">
-                  <div className="ov-head"><h3>Clients</h3><span className="count">{clientFlags.length}</span></div>
-                  {clientFlags.length === 0 && <p className="muted">No clients need follow-up.</p>}
-                  <ul className="ov-list">
-                    {clientFlags.slice(0, 5).map((f) => (
-                      <li key={f.h.key}>
-                        <Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} />
-                        <div><b>{f.h.name}</b>{f.pilot && <> <Pill s="Pilot" className="info" /></>}<span className="ov-sub">{f.reasons[0]}{f.reasons.length > 1 ? ` · +${f.reasons.length - 1} more` : ""}</span></div>
-                      </li>
-                    ))}
-                  </ul>
-                  <button type="button" className="more" onClick={() => goTo("sec-client-followup")}>See all clients →</button>
-                </div>
-                <div className="ov-card">
-                  <div className="ov-head"><h3>People</h3><span className="count">{flags.length}</span></div>
-                  {flags.length === 0 && <p className="muted">Nobody needs follow-up.</p>}
-                  <ul className="ov-list">
-                    {flags.slice(0, 5).map((f) => (
-                      <li key={f.engineer.id}>
-                        <Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} />
-                        <div><b>{f.engineer.name}</b><span className="ov-sub">{f.engineer.clients.join(", ") || "No client"} · {f.reasons[0]}</span></div>
-                      </li>
-                    ))}
-                  </ul>
-                  <button type="button" className="more" onClick={() => goTo("sec-followup")}>See all people →</button>
-                </div>
-              </div>
-            </section>
-
             {pilotClients.length > 0 && (
               <section>
                 <h2>Pilots</h2>
