@@ -35,7 +35,7 @@ Al abrir el link, el navegador pide usuario y contraseña. El usuario puede ser 
 
 ## Cómo funciona
 
-- Los datos se leen de Notion en el servidor y se refrescan cada 5 minutos como máximo.
+- Los datos se leen de Notion en el servidor y se refrescan cada minuto como máximo. La página abierta se actualiza sola cada minuto, y el botón **Actualizar ahora** (al pie) fuerza una lectura nueva de Notion. Lo que cambies en el tracker aparece en el dashboard en ~1 minuto, sin redeploy.
 - Al navegador solo llegan los campos que muestra la página. **Salary Rate, Equipment, Notes y las notas del SOW Tracker nunca salen del servidor.**
 - La página no aparece en buscadores (`noindex`).
 

@@ -45,7 +45,7 @@ async function queryAll(dataSourceId: string): Promise<NotionPage[]> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) }),
-      next: { revalidate: 300 },
+      next: { revalidate: 60 },
     });
     if (!res.ok) {
       const body = await res.text();
@@ -96,7 +96,7 @@ export function mapEngineers(pages: NotionPage[], today = todayIso()): Engineer[
   return pages
     .map((p) => {
       const startDate = date(prop(p, "Start Date "));
-      const pilotEnd = startDate ? addDays(startDate, 90) : null;
+      const pilotEnd = date(prop(p, "Pilot End")) ?? (startDate ? addDays(startDate, 90) : null);
       return {
         id: p.id,
         url: p.url,

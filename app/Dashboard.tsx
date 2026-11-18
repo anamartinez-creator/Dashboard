@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Client, Engineer, Sow } from "@/lib/notion";
+import AutoRefresh from "./AutoRefresh";
 
 type Props = { engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
@@ -233,6 +234,7 @@ export default function Dashboard({ engineers, sows, clients, loadedAt }: Props)
       <footer className="foot">
         Datos de Notion · Master SDM Tracker · actualizado{" "}
         {new Date(loadedAt).toLocaleString("es-HN", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
+        {" · "}se actualiza solo cada minuto · <AutoRefresh />
       </footer>
     </main>
   );

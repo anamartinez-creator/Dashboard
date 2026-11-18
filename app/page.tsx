@@ -1,8 +1,8 @@
 import { loadTracker } from "@/lib/notion";
 import Dashboard from "./Dashboard";
 
-// Read Notion again at most every 5 minutes
-export const revalidate = 300;
+// Read Notion again at most every minute
+export const revalidate = 60;
 
 export default async function Page() {
   try {
