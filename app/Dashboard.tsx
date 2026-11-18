@@ -16,6 +16,13 @@ const fmtDate = (iso: string | null) => {
   return d.toLocaleDateString("es-HN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 };
 
+// "12 nov 2026" or, when people start on different days, "12 nov – 30 nov 2026"
+const range = (a: string | null, b: string | null) => {
+  if (!a) return "—";
+  if (!b || a === b) return fmtDate(a);
+  return `${fmtDate(a)} – ${fmtDate(b)}`;
+};
+
 function Pill({ s, className }: { s: string; className?: string }) {
   return <span className={`pill ${className ?? tone(s)}`}>{s || "—"}</span>;
 }
@@ -28,7 +35,7 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ owner, engineers, sows, clients, loadedAt }: Props) {
+export default function Dashboard({ owner, engineers, sows, clients, loadedAt, today }: Props) {
   const mine = engineers;
 
   const counts = useMemo(() => {
@@ -54,6 +61,26 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt }:
 
   const health = useMemo(() => computeClientHealth(clients, engineers, sows), [clients, engineers, sows]);
   const shownHealth = health;
+
+  // Clients in pilot: status "Pilot" in Notion, or with people still in their 90 days.
+  // Dates come from the people: first start and last end among those in pilot.
+  const pilotClients = useMemo(() => {
+    const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+    return health
+      .map((h) => {
+        const ppl = h.engineers.filter((e) => e.pilotTracked && e.startDate && e.pilotEnd);
+        if (h.status !== "Pilot" && ppl.length === 0) return null;
+        const starts = ppl.map((e) => e.startDate as string).sort();
+        const ends = ppl.map((e) => e.pilotEnd as string).sort();
+        const start = starts[0] ?? null, startLast = starts[starts.length - 1] ?? null;
+        const end = ends[ends.length - 1] ?? null, endFirst = ends[0] ?? null;
+        const notStarted = start !== null && dayDiff(today, start) > 0;
+        const daysLeft = end ? dayDiff(today, end) : null;
+        return { h, ppl, start, startLast, end, endFirst, notStarted, daysLeft, toStart: start ? dayDiff(today, start) : null };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => (a.end ?? "9999").localeCompare(b.end ?? "9999") || a.h.name.localeCompare(b.h.name));
+  }, [health, today]);
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -133,6 +160,45 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt }:
                           <li key={i} className={`r-${r.level}`}>{r.text}</li>
                         ))}
                       </ul>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Clientes en periodo de piloto</h2>
+        <p className="hint">
+          Clientes con status Pilot en Notion o con personas en sus primeros 90 días. Inicio y fin salen de la fecha de inicio y de Pilot End de cada persona
+          (si falta Pilot End, inicio + 90 días). Si las personas entran en fechas distintas se muestra el rango.
+        </p>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th>Cliente</th><th>Personas en piloto</th><th>Inicio</th><th>Fin</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              {pilotClients.length === 0 && <EmptyRow cols={5} text="Ningún cliente está en periodo de piloto." />}
+              {pilotClients.map((p) => (
+                <tr key={p.h.key}>
+                  <td>{p.h.url ? <NameLink href={p.h.url}>{p.h.name}</NameLink> : p.h.name}</td>
+                  <td className="wide">
+                    {p.ppl.length === 0 ? <span className="muted">Sin fechas en Notion</span> : <><b>{p.ppl.length}</b> <span className="muted">· {p.ppl.map((e) => e.name).join(", ")}</span></>}
+                  </td>
+                  <td>{range(p.start, p.startLast)}</td>
+                  <td>{range(p.endFirst, p.end)}</td>
+                  <td>
+                    {p.daysLeft === null ? (
+                      <Pill s="Sin fechas" className="info" />
+                    ) : p.notStarted ? (
+                      <Pill s={`Empieza en ${p.toStart} d`} className="info" />
+                    ) : p.daysLeft < 0 ? (
+                      <Pill s={`Terminó hace ${-p.daysLeft} d`} className="bad" />
+                    ) : (
+                      <Pill s={`${p.daysLeft} d restantes`} className={p.daysLeft <= PILOT_WARN_DAYS ? "warn" : "ok"} />
                     )}
                   </td>
                 </tr>
