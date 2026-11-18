@@ -1,0 +1,151 @@
+// Reads the Master SDM Tracker from Notion on the server.
+// Only the fields the dashboard shows leave this file: Salary Rate, Equipment,
+// Notes and similar fields are never sent to the browser.
+
+const NOTION_VERSION = "2025-09-03";
+
+// Data sources inside the Master SDM Tracker page
+export const DATA_SOURCES = {
+  engineers: "2d370f1b-f516-8190-a868-000b9cd384fe", // 5. Software Development
+  sows: "e6914ed6-200f-401b-a1d1-8e8e7be4968f", // 2. SOW Tracker (Updates)
+  clients: "2d370f1b-f516-80fe-834f-000bcc90c067", // 3. Active Clients Status
+};
+
+export type Engineer = {
+  id: string;
+  url: string;
+  name: string;
+  status: string;
+  clients: string[];
+  role: string;
+  sdms: string[];
+  cadence: string | null;
+  location: string;
+  startDate: string | null;
+  pilotEnd: string | null;
+  pilotDaysLeft: number | null;
+};
+
+export type Sow = { id: string; url: string; client: string; status: string; nextStep: string };
+export type Client = { id: string; url: string; client: string; status: string; unit: string; headcount: number | null };
+
+type NotionPage = { id: string; url: string; properties: Record<string, any> };
+
+async function queryAll(dataSourceId: string): Promise<NotionPage[]> {
+  const token = process.env.NOTION_TOKEN;
+  if (!token) throw new Error("Falta la variable NOTION_TOKEN en Vercel.");
+  const pages: NotionPage[] = [];
+  let cursor: string | undefined;
+  do {
+    const res = await fetch(`https://api.notion.com/v1/data_sources/${dataSourceId}/query`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Notion-Version": NOTION_VERSION,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) }),
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      if (res.status === 404 || res.status === 403)
+        throw new Error("Notion no deja leer el tracker. Conecta la integración a la página Master SDM Tracker (••• → Connections).");
+      throw new Error(`Notion respondió ${res.status}: ${body.slice(0, 200)}`);
+    }
+    const json = await res.json();
+    pages.push(...json.results);
+    cursor = json.has_more ? json.next_cursor : undefined;
+  } while (cursor);
+  return pages;
+}
+
+// Property helpers. Notion property names are matched exactly, including the
+// trailing spaces some of them have ("Assigned to ", "Start Date ").
+const prop = (p: NotionPage, name: string) => p.properties?.[name];
+const text = (v: any): string => {
+  if (!v) return "";
+  if (v.type === "title") return v.title.map((t: any) => t.plain_text).join("").trim();
+  if (v.type === "rich_text") return v.rich_text.map((t: any) => t.plain_text).join("").trim();
+  if (v.type === "select") return v.select?.name ?? "";
+  if (v.type === "status") return v.status?.name ?? "";
+  return "";
+};
+const multi = (v: any): string[] => (v?.type === "multi_select" ? v.multi_select.map((o: any) => o.name) : []);
+const date = (v: any): string | null => (v?.type === "date" ? v.date?.start?.slice(0, 10) ?? null : null);
+const num = (v: any): number | null => (v?.type === "number" ? v.number : null);
+// Client statuses carry emoji ("On track 🟢"); drop them so colors match.
+const cleanStatus = (s: string) => s.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").trim();
+
+// Today's date in Honduras, as YYYY-MM-DD
+export function todayIso(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Tegucigalpa" }).format(new Date());
+}
+const addDays = (iso: string, days: number) => {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+const daysBetween = (from: string, to: string) =>
+  Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86400000);
+
+const STATUS_ORDER: Record<string, number> = { "High Risk": 0, "Needs Attention": 1, Hiring: 2, "New Hire": 3, Pilot: 4, "New Client": 5 };
+const order = (s: string) => STATUS_ORDER[s] ?? 9;
+
+export function mapEngineers(pages: NotionPage[], today = todayIso()): Engineer[] {
+  return pages
+    .map((p) => {
+      const startDate = date(prop(p, "Start Date "));
+      const pilotEnd = startDate ? addDays(startDate, 90) : null;
+      return {
+        id: p.id,
+        url: p.url,
+        name: text(prop(p, "Engineer")) || "Sin nombre",
+        status: text(prop(p, "Status")),
+        clients: multi(prop(p, "Client")),
+        role: text(prop(p, "Role")),
+        sdms: multi(prop(p, "Assigned to ")),
+        cadence: text(prop(p, "1:1 Cadence")) || null,
+        location: text(prop(p, "Location")),
+        startDate,
+        pilotEnd,
+        pilotDaysLeft: pilotEnd ? daysBetween(today, pilotEnd) : null,
+      };
+    })
+    .sort((a, b) => order(a.status) - order(b.status) || (a.clients[0] ?? "").localeCompare(b.clients[0] ?? "") || a.name.localeCompare(b.name));
+}
+
+export function mapSows(pages: NotionPage[]): Sow[] {
+  const rank: Record<string, number> = { Pending: 0, "To confirm": 1, Sent: 2, Signed: 3 };
+  return pages
+    .map((p) => ({
+      id: p.id,
+      url: p.url,
+      client: text(prop(p, "Client / SOW")),
+      status: text(prop(p, "Status")),
+      nextStep: text(prop(p, "To do")),
+    }))
+    .sort((a, b) => (rank[a.status] ?? 9) - (rank[b.status] ?? 9) || a.client.localeCompare(b.client));
+}
+
+export function mapClients(pages: NotionPage[]): Client[] {
+  return pages
+    .map((p) => ({
+      id: p.id,
+      url: p.url,
+      client: text(prop(p, "Client")),
+      status: cleanStatus(text(prop(p, "Status"))),
+      unit: text(prop(p, "Business Unit")),
+      headcount: num(prop(p, "Headcount")),
+    }))
+    .sort((a, b) => order(a.status) - order(b.status) || a.client.localeCompare(b.client));
+}
+
+export async function loadTracker() {
+  const [e, s, c] = await Promise.all([
+    queryAll(DATA_SOURCES.engineers),
+    queryAll(DATA_SOURCES.sows),
+    queryAll(DATA_SOURCES.clients),
+  ]);
+  return { engineers: mapEngineers(e), sows: mapSows(s), clients: mapClients(c), loadedAt: new Date().toISOString(), today: todayIso() };
+}
