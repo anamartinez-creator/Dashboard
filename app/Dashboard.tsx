@@ -161,7 +161,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     [counts]
   );
 
-  const risky = counts.attention + counts.highRisk;
   const mixTotal = Math.max(1, statusMix.reduce((n, m) => n + m.n, 0));
 
   return (
@@ -177,13 +176,24 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <p className="owner">SDM: <b>{owner}</b></p>
       </header>
 
-      <div className="kpis">
-        <Kpi label="On track" value={lights.green} sub="No alerts" />
-        <Kpi label="Needs Attention" value={lights.yellow} sub="Need follow-up" flag={lights.yellow > 0 ? "warn" : undefined} />
-        <Kpi label="High Risk" value={lights.red} sub="Action needed" flag={lights.red > 0 ? "bad" : undefined} />
-        <Kpi label="Average score" value={avgScore} sub="Out of 100" />
-        <Kpi label="People" value={`${counts.attention} / ${counts.highRisk}`} sub="Needs Attention / High Risk" flag={risky > 0 ? "bad" : undefined} />
-      </div>
+      <section>
+        <h2>Client Status</h2>
+        <div className="kpis">
+          <Kpi label="On track" value={lights.green} sub="Clients" />
+          <Kpi label="Needs Attention" value={lights.yellow} sub="Clients" flag={lights.yellow > 0 ? "warn" : undefined} />
+          <Kpi label="High Risk" value={lights.red} sub="Clients" flag={lights.red > 0 ? "bad" : undefined} />
+          <Kpi label="Average score" value={avgScore} sub="Out of 100" />
+        </div>
+      </section>
+
+      <section>
+        <h2>People</h2>
+        <div className="kpis">
+          <Kpi label="Total" value={counts.total} sub="People on your team" />
+          <Kpi label="Needs Attention" value={counts.attention} sub="People" flag={counts.attention > 0 ? "warn" : undefined} />
+          <Kpi label="High Risk" value={counts.highRisk} sub="People" flag={counts.highRisk > 0 ? "bad" : undefined} />
+        </div>
+      </section>
 
       <section>
         <h2>Active Client Health</h2>
