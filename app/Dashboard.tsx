@@ -129,6 +129,21 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         .sort((a, b) => (a.level === b.level ? a.engineer.name.localeCompare(b.engineer.name) : a.level === "red" ? -1 : 1)),
     [mine]
   );
+
+  // Clients that need follow-up: yellow or red health (alerts), or a known last contact over 30 days ago.
+  // Clients with no meeting on record are not flagged for that alone: the meeting data is incomplete.
+  const clientFlags = useMemo(() => {
+    return clientRows
+      .map((r) => {
+        const reasons = r.h.reasons.filter((x) => x.level !== "info").map((x) => x.text);
+        const stale = r.ago !== null && r.ago > 30;
+        if (stale) reasons.push(`No client contact in ${r.ago} days`);
+        const level: "red" | "yellow" | null = r.h.reasons.some((x) => x.level === "red") ? "red" : reasons.length ? "yellow" : null;
+        return level ? { ...r, level, reasons } : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((x, y) => (x.level === y.level ? (y.ago ?? -1) - (x.ago ?? -1) || x.h.name.localeCompare(y.h.name) : x.level === "red" ? -1 : 1));
+  }, [clientRows]);
   const statusMix = useMemo(
     () => [
       { label: "On track", n: counts.onTrack, cls: "seg-ok" },
@@ -275,6 +290,32 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
           {statusMix.filter((m) => m.n > 0).map((m) => (
             <span key={m.label} className={m.cls} style={{ flex: m.n / mixTotal }} title={`${m.label}: ${m.n}`} />
           ))}
+        </div>
+      </section>
+
+      <section id="sec-client-followup">
+        <h2>Clients who need follow-up</h2>
+        <div className="tw">
+          <table>
+            <thead>
+              <tr><th className="center">Client</th><th className="center">Priority</th><th className="center">People</th><th>Last contact</th><th>Reasons</th></tr>
+            </thead>
+            <tbody>
+              {clientFlags.length === 0 && <EmptyRow cols={5} text="No clients need follow-up." />}
+              {clientFlags.map((f) => (
+                <tr key={f.h.key}>
+                  <td className="center">
+                    {f.h.url ? <NameLink href={f.h.url}>{f.h.name}</NameLink> : f.h.name}
+                    {f.pilot && <> <Pill s="Pilot" className="info" /></>}
+                  </td>
+                  <td className="center"><Pill s={f.level === "red" ? "High" : "Medium"} className={f.level === "red" ? "bad" : "warn"} /></td>
+                  <td className="center">{headcount(f.h) || "—"}</td>
+                  <td className={f.m ? "" : "muted"}>{f.m ? `${fmtDate(f.m.date)} · ${f.ago} d ago` : "Not found"}</td>
+                  <td className="wide">{f.reasons.join(" · ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
