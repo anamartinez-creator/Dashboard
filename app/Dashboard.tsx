@@ -88,6 +88,23 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
     const inPilot = new Set(pilotClients.map((p) => p.h.key));
     return health.filter((h) => !inPilot.has(h.key));
   }, [health, pilotClients]);
+
+  // People grouped by client, using the client names from Active Clients Status.
+  // Someone on two clients shows up under both.
+  const teamByClient = useMemo(() => {
+    const pilotKeys = new Set(pilotClients.map((p) => p.h.key));
+    const m = new Map<string, { client: string; pilot: boolean; people: Engineer[] }>();
+    for (const e of mine) {
+      for (const label of e.clients.length ? e.clients : ["Sin cliente"]) {
+        const match = health.find((h) => sameClient(h.name, label));
+        const name = match?.name ?? label;
+        const g = m.get(name) ?? { client: name, pilot: match ? pilotKeys.has(match.key) : false, people: [] };
+        g.people.push(e);
+        m.set(name, g);
+      }
+    }
+    return Array.from(m.values()).sort((a, b) => b.people.length - a.people.length || a.client.localeCompare(b.client));
+  }, [mine, health, pilotClients]);
   const lights = useMemo(() => {
     const c = { green: 0, yellow: 0, red: 0 };
     for (const h of shownHealth) c[h.light]++;
@@ -255,28 +272,37 @@ export default function Dashboard({ owner, engineers, sows, clients, loadedAt, t
       </section>
 
       <section>
-        <h2>Equipo</h2>
-        <p className="hint">Primero lo que necesita atención. El nombre abre la página de la persona en Notion.</p>
-        <div className="tw">
-          <table>
-            <thead>
-              <tr><th>Persona</th><th>Status</th><th>Cliente</th><th>Rol</th><th>SDM</th><th>1:1</th><th>País</th></tr>
-            </thead>
-            <tbody>
-              {mine.length === 0 && <EmptyRow cols={7} text="Nadie asignado." />}
-              {mine.map((e) => (
-                <tr key={e.id}>
-                  <td><NameLink href={e.url}>{e.name}</NameLink></td>
-                  <td><Pill s={e.status} /></td>
-                  <td>{e.clients.join(", ") || "—"}</td>
-                  <td className="muted">{e.role || "—"}</td>
-                  <td className="muted">{e.sdms.join(", ") || "—"}</td>
-                  <td className={e.cadence ? "" : "muted"}>{e.cadence ?? "Sin definir"}</td>
-                  <td className="muted">{e.location || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <h2>Equipo por cliente</h2>
+        <p className="hint">Primero los clientes con más personas; dentro de cada uno, lo que necesita atención arriba. El nombre abre la página de la persona en Notion. Quien está en dos clientes aparece en ambos.</p>
+        {teamByClient.length === 0 && <p className="hint">Nadie asignado.</p>}
+        <div className="groups">
+          {teamByClient.map((g) => (
+            <div className="group" key={g.client}>
+              <h3>
+                {g.client} <span className="count">{g.people.length} {g.people.length === 1 ? "persona" : "personas"}</span>
+                {g.pilot && <Pill s="Piloto" className="info" />}
+              </h3>
+              <div className="tw">
+                <table>
+                  <thead>
+                    <tr><th>Persona</th><th>Status</th><th>Rol</th><th>1:1</th><th>Inicio</th><th>País</th></tr>
+                  </thead>
+                  <tbody>
+                    {g.people.map((e) => (
+                      <tr key={e.id}>
+                        <td><NameLink href={e.url}>{e.name}</NameLink></td>
+                        <td><Pill s={e.status} /></td>
+                        <td className="muted">{e.role || "—"}</td>
+                        <td className={e.cadence ? "" : "muted"}>{e.cadence ?? "Sin definir"}</td>
+                        <td className="muted">{fmtDate(e.startDate)}</td>
+                        <td className="muted">{e.location || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
