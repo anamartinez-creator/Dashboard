@@ -271,7 +271,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               {quick === "all" && (
               <div className="clist">
                 <div className="cl-head" aria-hidden="true">
-                  <span /><span>Client</span><span>Contact / pilot</span><span>Latest comment</span><span />
+                  <span /><span>Client</span><span>Last contact</span><span>Latest comment</span><span />
                 </div>
                 {(() => {
                   const groups: { key: string; label: string; rows: typeof mapRows }[] = [
@@ -284,10 +284,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                     <div className="cl-group" key={g.key}>
                       <h3 className={`cl-gh mg-${g.key}`}>{g.label}<span>{g.rows.length}</span></h3>
                       {g.rows.map((r) => {
-                        const pi = r.pilotInfo;
-                        const sub = pi
-                          ? pi.notStarted ? `Starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot ended" : `Pilot · ${pi.daysLeft} days left`
-                          : r.ago !== null ? `${r.ago === 0 ? "Today" : r.ago === 1 ? "1 day ago" : `${r.ago} days ago`}` : "No contact yet";
+                        const sub = r.ago !== null ? (r.ago === 0 ? "Today" : r.ago === 1 ? "1 day ago" : `${r.ago} days ago`) : "No contact yet";
                         return (
                           <button type="button" key={r.h.key} className={`cl-row cl-${g.key}`} onClick={() => setOpenKey(r.h.key)}>
                             <i className="cl-dot" />
