@@ -29,8 +29,8 @@ export const CLIENT_MEETINGS: ClientMeeting[] = [
     notes: { comment: "Client confirmed they will continue. They value proactive updates, which give them confidence that enough work is getting done." } },
   { client: "Hol+", date: "2026-09-24", source: "Notion", title: "Hol+: client note in tracker", url: "https://app.notion.com/p/36670f1bf51680f286cadff61bee5be7",
     notes: { comment: "Client is very happy: the site rebuild was owned end to end, only small tweaks were requested, and a before/after performance report was shared." } },
-  { client: "CompSci", date: "2026-09-24", source: "Notion", title: "CompSci: note in tracker", url: "https://app.notion.com/p/2d370f1bf51680219917fd8ad7096a24",
-    notes: { comment: "Engagement is going well. A move to a newer project team has been discussed but is not confirmed by the team lead." } },
+  { client: "CompSci", date: "2026-10-28", source: "Notion", title: "CompSci: note in tracker", url: "https://app.notion.com/p/2d370f1bf51680219917fd8ad7096a24",
+    notes: { comment: "The transition to a new project team has been confirmed. The engineer is now on an MVP project targeting a February launch." } },
   { client: "Proline Engineering", date: "2026-09-24", source: "Notion", title: "Proline Engineering: note in tracker", url: "https://app.notion.com/p/2d370f1bf51680a59478e880671edce8",
     notes: { comment: "The new QA hires have their equipment and are already helping with ticket triage and QA. The team lead now runs monthly 1:1s with his team." } },
 ];
