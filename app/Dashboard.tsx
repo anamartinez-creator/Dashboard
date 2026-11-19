@@ -248,6 +248,16 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         {tab === "overview" && (
           <>
             <section className="exec">
+              {quick === "all" && (
+                <Charts
+                  rows={clientRows}
+                  pilots={pilotClients}
+                  today={today}
+                  onOpen={(k) => setOpenKey(k)}
+                  onQuick={(k) => setQuick(k)}
+                />
+              )}
+
               <div className="ask">
                 <span className="ask-label">Quick questions</span>
                 {QUICK_LABEL.map(([k, label]) => (
@@ -525,4 +535,97 @@ const LIGHT_CLASS: Record<Light, string> = { green: "ok", yellow: "warn", red: "
 function LightPill({ light }: { light: Light }) {
   // Color only; the name goes in aria-label and the tooltip for screen readers
   return <span className={`dot seg-${LIGHT_CLASS[light]}`} role="img" aria-label={LIGHT_LABEL[light]} title={LIGHT_LABEL[light]} />;
+}
+
+type ChartRow = { h: ClientHealth; pilot: boolean };
+type ChartPilot = { h: ClientHealth; start: string | null; end: string | null; daysLeft: number | null; notStarted: boolean };
+
+const dayNum = (iso: string) => Math.round(Date.parse(iso + "T00:00:00Z") / 86400000);
+
+function Charts({ rows, pilots, today, onOpen, onQuick }: { rows: ChartRow[]; pilots: ChartPilot[]; today: string; onOpen: (key: string) => void; onQuick: (k: "risk" | "attention" | "pilot") => void }) {
+  // 1) Donut: clients by status (pilots are their own slice)
+  const slices = [
+    { key: "bad", label: "High Risk", color: "var(--bad)", n: rows.filter((r) => !r.pilot && r.h.light === "red").length, q: "risk" as const },
+    { key: "warn", label: "Needs Attention", color: "var(--warn)", n: rows.filter((r) => !r.pilot && r.h.light === "yellow").length, q: "attention" as const },
+    { key: "pilot", label: "Pilot", color: "var(--cyan)", n: rows.filter((r) => r.pilot).length, q: "pilot" as const },
+    { key: "ok", label: "On track", color: "var(--ok)", n: rows.filter((r) => !r.pilot && r.h.light === "green").length, q: null },
+  ];
+  const total = slices.reduce((n, x) => n + x.n, 0);
+  const R = 52, C = 2 * Math.PI * R;
+  let acc = 0;
+
+  // 2) Headcount by client
+  const byPeople = rows.map((r) => ({ r, n: headcount(r.h) })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n || a.r.h.name.localeCompare(b.r.h.name));
+  const maxN = Math.max(1, ...byPeople.map((x) => x.n));
+  const totalPeople = byPeople.reduce((n, x) => n + x.n, 0);
+
+  // 3) Pilot timeline
+  const dated = pilots.filter((p) => p.start && p.end);
+  const t0 = dated.length ? Math.min(dayNum(today), ...dated.map((p) => dayNum(p.start as string))) : 0;
+  const t1 = dated.length ? Math.max(dayNum(today), ...dated.map((p) => dayNum(p.end as string))) : 1;
+  const pos = (iso: string) => ((dayNum(iso) - t0) / Math.max(1, t1 - t0)) * 100;
+
+  return (
+    <div className="charts">
+      <div className="chart-card">
+        <h3>Client health</h3>
+        <div className="donut-wrap">
+          <svg viewBox="0 0 140 140" className="donut" role="img" aria-label={"Clients by status: " + slices.map((x) => `${x.label} ${x.n}`).join(", ")}>
+            <circle cx="70" cy="70" r={R} fill="none" stroke="var(--tint)" strokeWidth="18" />
+            {slices.filter((x) => x.n > 0).map((x) => {
+              const len = (x.n / Math.max(1, total)) * C;
+              const el = <circle key={x.key} cx="70" cy="70" r={R} fill="none" stroke={x.color} strokeWidth="18" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc} transform="rotate(-90 70 70)" />;
+              acc += len;
+              return el;
+            })}
+            <text x="70" y="68" textAnchor="middle" className="donut-n">{total}</text>
+            <text x="70" y="86" textAnchor="middle" className="donut-l">clients</text>
+          </svg>
+          <ul className="donut-legend">
+            {slices.map((x) => (
+              <li key={x.key}>
+                <button type="button" disabled={!x.q || x.n === 0} onClick={() => x.q && onQuick(x.q)}>
+                  <i style={{ background: x.color }} />{x.label}<b>{x.n}</b>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="chart-card">
+        <h3>People by client <span className="chart-total">{totalPeople} total</span></h3>
+        <ul className="hbars">
+          {byPeople.map(({ r, n }) => (
+            <li key={r.h.key}>
+              <button type="button" onClick={() => onOpen(r.h.key)} title={`${r.h.name}: ${n}`}>
+                <span className="hb-name">{r.h.name}</span>
+                <span className="hb-track"><span className={`hb-fill seg-${r.pilot ? "pilot" : LIGHT_CLASS[r.h.light]}`} style={{ width: `${(n / maxN) * 100}%` }} /></span>
+                <span className="hb-n">{n}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {dated.length > 0 && (
+        <div className="chart-card wide">
+          <h3>Pilot timeline</h3>
+          <div className="gantt" role="img" aria-label="Pilot periods">
+            <div className="g-overlay"><div className="g-today" style={{ left: `${pos(today)}%` }}><span>Today</span></div></div>
+            {dated.map((p) => (
+              <button type="button" key={p.h.key} className="g-row" onClick={() => onOpen(p.h.key)}>
+                <span className="g-name">{p.h.name}</span>
+                <span className="g-track">
+                  <span className="g-bar" style={{ left: `${pos(p.start as string)}%`, width: `${Math.max(2, pos(p.end as string) - pos(p.start as string))}%` }} />
+                </span>
+                <span className="g-left">{p.notStarted ? "Not started" : p.daysLeft === null ? "" : p.daysLeft < 0 ? "Ended" : `${p.daysLeft} days left`}</span>
+              </button>
+            ))}
+          </div>
+          <div className="g-axis"><span>{fmtDate(new Date(t0 * 86400000).toISOString().slice(0, 10))}</span><span>{fmtDate(new Date(t1 * 86400000).toISOString().slice(0, 10))}</span></div>
+        </div>
+      )}
+    </div>
+  );
 }
