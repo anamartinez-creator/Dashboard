@@ -583,10 +583,15 @@ function Charts({ rows, pilots, today, onOpen, onQuick }: { rows: ChartRow[]; pi
           <div className="gantt" role="img" aria-label="Pilot periods">
             <div className="g-overlay"><div className="g-today" style={{ left: `${pos(today)}%` }}><span>Today</span></div></div>
             {dated.map((p) => (
-              <button type="button" key={p.h.key} className="g-row" onClick={() => onOpen(p.h.key)}>
+              <button type="button" key={p.h.key} className="g-row" title={`${p.h.name}: ${fmtDate(p.start)} to ${fmtDate(p.end)}`} onClick={() => onOpen(p.h.key)}>
                 <span className="g-name">{p.h.name}</span>
                 <span className="g-track">
                   <span className="g-bar" style={{ left: `${pos(p.start as string)}%`, width: `${Math.max(2, pos(p.end as string) - pos(p.start as string))}%` }} />
+                  <span className="g-tip" style={{ left: `${Math.min(88, Math.max(12, (pos(p.start as string) + pos(p.end as string)) / 2))}%` }}>
+                    <b>{p.h.name}</b>
+                    <span>Start: {fmtDate(p.start)}</span>
+                    <span>End: {fmtDate(p.end)}</span>
+                  </span>
                 </span>
                 <span className="g-left">{p.notStarted ? "Not started" : p.daysLeft === null ? "" : p.daysLeft < 0 ? "Ended" : `${p.daysLeft} days left`}</span>
               </button>
