@@ -269,36 +269,38 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </div>
 
               {quick === "all" && (
-              <div className="mosaic-wrap">
-                <div className="mosaic-legend">
-                  {([["bad", "High Risk"], ["warn", "Needs Attention"], ["pilot", "Pilot"], ["ok", "On track"]] as const).map(([k, label]) => (
-                    <span key={k}><i className={`mz-${k}`} />{label}</span>
-                  ))}
-                  <em>Block size = people on the client. Click a block for details.</em>
+              <div className="clist">
+                <div className="cl-head" aria-hidden="true">
+                  <span /><span>Client</span><span>Contact / pilot</span><span>Latest comment</span><span />
                 </div>
-                <div className="mosaic" role="list">
-                  {[...mapRows]
-                    .sort((a, b) => {
-                      const rank = (r: (typeof mapRows)[number]) => (!r.pilot && r.h.light === "red" ? 0 : !r.pilot && r.h.light === "yellow" ? 1 : r.pilot ? 2 : 3);
-                      return rank(a) - rank(b) || headcount(b.h) - headcount(a.h) || a.h.name.localeCompare(b.h.name);
-                    })
-                    .map((r) => {
-                      const k = !r.pilot && r.h.light === "red" ? "bad" : !r.pilot && r.h.light === "yellow" ? "warn" : r.pilot ? "pilot" : "ok";
-                      const pi = r.pilotInfo;
-                      const sub = pi
-                        ? pi.notStarted ? `Starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot ended" : `${pi.daysLeft} days left`
-                        : r.ago !== null ? `Contact ${r.ago === 0 ? "today" : `${r.ago}d ago`}` : "No contact yet";
-                      const n = headcount(r.h);
-                      return (
-                        <button type="button" role="listitem" key={r.h.key} className={`mblock mz-${k}`} style={{ flex: `${Math.max(1, n)} 1 ${110 + Math.max(1, n) * 30}px` }} onClick={() => setOpenKey(r.h.key)}>
-                          <span className="mb-n">{n || "—"}</span>
-                          <span className="mb-name">{r.h.name}</span>
-                          <span className="mb-sub">{sub}</span>
-                          {r.m?.notes && <span className="mb-pop"><b>{r.h.name} · {fmtDate(r.m.date)}</b>{r.m.notes.comment}</span>}
-                        </button>
-                      );
-                    })}
-                </div>
+                {(() => {
+                  const groups: { key: string; label: string; rows: typeof mapRows }[] = [
+                    { key: "bad", label: "High Risk", rows: mapRows.filter((r) => !r.pilot && r.h.light === "red") },
+                    { key: "warn", label: "Needs Attention", rows: mapRows.filter((r) => !r.pilot && r.h.light === "yellow") },
+                    { key: "pilot", label: "Pilot", rows: mapRows.filter((r) => r.pilot) },
+                    { key: "ok", label: "On track", rows: mapRows.filter((r) => !r.pilot && r.h.light === "green") },
+                  ];
+                  return groups.filter((g) => g.rows.length > 0).map((g) => (
+                    <div className="cl-group" key={g.key}>
+                      <h3 className={`cl-gh mg-${g.key}`}>{g.label}<span>{g.rows.length}</span></h3>
+                      {g.rows.map((r) => {
+                        const pi = r.pilotInfo;
+                        const sub = pi
+                          ? pi.notStarted ? `Starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot ended" : `Pilot · ${pi.daysLeft} days left`
+                          : r.ago !== null ? `${r.ago === 0 ? "Today" : r.ago === 1 ? "1 day ago" : `${r.ago} days ago`}` : "No contact yet";
+                        return (
+                          <button type="button" key={r.h.key} className={`cl-row cl-${g.key}`} onClick={() => setOpenKey(r.h.key)}>
+                            <i className="cl-dot" />
+                            <b className="cl-name">{r.h.name}</b>
+                            <span className="cl-sub">{sub}</span>
+                            <span className="cl-comment">{r.m?.notes ? r.m.notes.comment : <em>No comment yet</em>}</span>
+                            <span className="cl-go" aria-hidden="true">›</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
               </div>
               )}
               {quick !== "all" && mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
