@@ -39,7 +39,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
 
       <main className="ta">
         <div className="ta-stats">
-          <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({open.openRoles} roles)</span></div>
+          <div className="ta-stat"><b>{open.openPositions}</b><span>Openings ({open.openRoles} roles)</span></div>
           <div className="ta-stat"><b>{open.submitted}</b><span>Candidates submitted on open roles</span></div>
           <div className="ta-stat"><b>{totals.hires}</b><span>{data.hires ? "Hires in 2026" : `Hires in 2026 (${totals.filledRoles} roles filled)`}</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
@@ -72,7 +72,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
             </div>
           </section>
           <section className="chart-card">
-            <h3>Open positions by client <span className="chart-total">blue open · red on hold · cyan in sales</span></h3>
+            <h3>Openings by client <span className="chart-total">blue open · red on hold · cyan in sales</span></h3>
             {byClient.length === 0 && <p className="ta-note">Nothing open.</p>}
             {byClient.map((c) => (
               <div className="ta-row" key={c.client}>
