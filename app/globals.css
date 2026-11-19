@@ -648,3 +648,10 @@ h2.brief-title::before { display: none; }
 .ta-grid > .chart-card .ta-cols { flex: 1; height: auto; min-height: 170px; padding-top: 26px; }
 @media (max-width: 900px) { .ta-stat b { font-size: 26px; } }
 .ta-tall { max-height: 380px; overflow-y: auto; }
+/* Talent Acquisition: executive layout */
+.ta-sum { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: rgba(255,255,255,.9); }
+.ta-stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.ta-stat.is-warn { border-color: var(--warn); }
+.ta-stat.is-warn b { color: var(--warn); }
+.ta-details summary { cursor: pointer; font-family: var(--head-font); font-size: 16px; color: var(--blue); font-weight: 700; }
+.ta-details[open] summary { margin-bottom: 12px; }

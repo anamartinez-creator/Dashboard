@@ -1,24 +1,32 @@
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES } from "@/lib/hiring";
 
-const fmtDate = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const STALE_DAYS = 30;
 
 export default function TalentAcquisition({ data }: { data: HiringData }) {
-  const { totals, open, byClient, openRoles, monthly, byStatus, today } = data;
+  const { totals, open, openRoles, monthly, byStatus, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
-  const stale = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > 30).length;
-  const headline =
-    open.openPositions === 0
-      ? "No open positions right now"
-      : `${open.openPositions} ${open.openPositions === 1 ? "position" : "positions"} open across ${open.openRoles} ${open.openRoles === 1 ? "role" : "roles"}${open.holdRoles ? ` · ${open.holdRoles} on hold` : ""}`;
-  const briefTone = stale > 0 ? "is-warn" : "is-ok";
+  const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > STALE_DAYS);
+  const onHold = openRoles.filter((r) => r.status === "On Hold");
+  const best = monthly.reduce((a, m) => (m.hires > a.hires ? m : a), { month: "", hires: 0 });
+  const agingPositions = aging.reduce((n, r) => n + r.positions, 0);
 
-  const maxClient = Math.max(1, ...byClient.map((c) => c.open + c.hold + c.presales));
-  const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
+  // Three plain sentences for the top of the page
+  const summary = [
+    `${plural(totals.hires, "person", "people")} hired since January${best.hires ? `; ${best.month} was the strongest month with ${best.hires}` : ""}.`,
+    open.openPositions === 0
+      ? "Nothing is open right now."
+      : `${plural(open.openPositions, "position", "positions")} open across ${plural(open.openRoles, "role", "roles")}${aging.length ? `, ${aging.length} of them open for more than ${STALE_DAYS} days` : ", none open for more than 30 days"}.`,
+    `${pct(totals.fillRate)} of the roles that closed ended in a hire (cancelled roles are not counted).`,
+  ];
+  const briefTone = aging.length > 0 || onHold.length > 0 ? "is-warn" : "is-ok";
+
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
+  const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
   const maxStatus = Math.max(1, ...byStatus.map((s) => s.positions));
 
   return (
@@ -27,12 +35,13 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         <div className="hero-in">
           <div className="hero-bar">
             <h1 className="hero-title">Talent Acquisition</h1>
-            <p className="owner">Source: Active Job Openings sheet<br />Latest tab: {data.latestTab}</p>
+            <p className="owner">Source: Active Job Openings and Bonuses sheets<br />Latest tab: {data.latestTab}</p>
           </div>
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
-              <p className="brief-eyebrow">Today at a glance</p>
-              <h2 className="brief-title">{headline}</h2>
+              <p className="brief-eyebrow">Executive summary</p>
+              <h2 className="brief-title">{summary[0]}</h2>
+              <p className="ta-sum">{summary[1]}<br />{summary[2]}</p>
             </div>
           </div>
         </div>
@@ -40,61 +49,58 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
 
       <main className="ta">
         <div className="ta-stats">
-          <div className="ta-stat"><b>{open.openPositions}</b><span>Openings ({open.openRoles} roles)</span></div>
-          <div className="ta-stat"><b>{open.submitted}</b><span>Candidates submitted on open roles</span></div>
-          <div className="ta-stat"><b>{totals.hires}</b><span>{data.hires ? "Hires in 2026" : `Hires in 2026 (${totals.filledRoles} roles filled)`}</span></div>
+          <div className="ta-stat"><b>{totals.hires}</b><span>Hires since January</span></div>
+          <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
+          <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
+          <div className={`ta-stat${aging.length ? " is-warn" : ""}`}><b>{aging.length}</b><span>Roles open over {STALE_DAYS} days{agingPositions > aging.length ? ` (${agingPositions} positions)` : ""}</span></div>
         </div>
 
+        {(aging.length > 0 || onHold.length > 0) && (
+          <div className="ta-block">
+            <div className="ta-sec"><h2>Needs attention</h2><p>Roles that have been open the longest, and roles on hold.</p></div>
+            <section className="chart-card">
+              <div className="ta-scroll">
+                <table className="ta-table">
+                  <thead><tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th></tr></thead>
+                  <tbody>
+                    {[...aging, ...onHold].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0)).map((r) => (
+                      <tr key={r.key}>
+                        <td><b>{r.title}</b></td>
+                        <td>{r.client}</td>
+                        <td className="c">{age(r) === null ? "—" : `${age(r)} days`}</td>
+                        <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        )}
+
         <div className="ta-block">
-          <div className="ta-sec"><h2>Open roles</h2><p>What is being hired for right now, and where the candidates are.</p></div>
+          <div className="ta-sec"><h2>Hiring momentum</h2><p>People hired each month this year.</p></div>
           <section className="chart-card">
-            <div className="ta-scroll">
-              <table className="ta-table">
-                <thead>
-                  <tr><th>Role</th><th>Owner</th><th className="c">Age</th><th className="c">Positions</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th><th>Comment</th></tr>
-                </thead>
-                <tbody>
-                  {openRoles.map((r) => (
-                    <tr key={r.key}>
-                      <td><b>{r.title}</b><small>{r.client}</small></td>
-                      <td>{r.owner || "—"}</td>
-                      <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
-                      <td className="c">{r.positions}</td>
-                      <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
-                      <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
-                      <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
-                      <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
-                      <td className="ta-comment">{r.comment}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <h3>Hires by month <span className="chart-total">{totals.hires} in total</span></h3>
+            <div className="ta-cols">
+              {monthly.map((m) => (
+                <div className="ta-col" key={m.month}>
+                  <b>{m.hires || ""}</b>
+                  <div className="ta-colbar" style={{ height: `${(m.hires / maxHires) * 100}%` }} />
+                  <span>{m.month}</span>
+                </div>
+              ))}
             </div>
           </section>
-          <section className="chart-card">
-            <h3>Openings by client <span className="chart-total">blue open · red on hold · cyan in sales</span></h3>
-            {byClient.length === 0 && <p className="ta-note">Nothing open.</p>}
-            {byClient.map((c) => (
-              <div className="ta-row" key={c.client}>
-                <span className="g-name">{c.client}</span>
-                <div className="ta-track">
-                  <div className="ta-seg" style={{ width: `${(c.open / maxClient) * 100}%`, background: "var(--blue)" }} />
-                  <div className="ta-seg" style={{ width: `${(c.hold / maxClient) * 100}%`, background: "var(--bad)" }} />
-                  <div className="ta-seg" style={{ width: `${(c.presales / maxClient) * 100}%`, background: "var(--cyan)" }} />
-                </div>
-                <span className="ta-val">{c.open + c.hold + c.presales}</span>
-              </div>
-            ))}
-          </section>
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Openings per client</h2><p>Positions each client has opened since January, and how they stand today.</p></div>
+          <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Engineering and Customer Success are shown separately.</p></div>
           <div className="ta-grid">
             {data.clientHistory.map((g) => (
               <section className="chart-card" key={g.group}>
-                <h3>{g.group} <span className="chart-total">{g.clients.reduce((n, c) => n + c.total, 0)} openings since January</span></h3>
+                <h3>{g.group} <span className="chart-total">{g.clients.reduce((n, c) => n + c.total, 0)} openings</span></h3>
                 {g.clients.map((c) => (
                   <div className="ta-row" key={c.client}>
                     <span className="g-name">{c.client}</span>
@@ -117,53 +123,66 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Hires</h2><p>{data.hires ? "People hired since January, from the Bonuses sheet." : "How many people joined each month."}</p></div>
-          <div>
-            <section className="chart-card">
-              <h3>Hires by month <span className="chart-total">2026</span></h3>
-              <div className="ta-cols">
-                {monthly.map((m) => (
-                  <div className="ta-col" key={m.month}>
-                    <b>{m.hires || ""}</b>
-                    <div className="ta-colbar" style={{ height: `${(m.hires / maxHires) * 100}%` }} />
-                    <span>{m.month}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-            {data.hires && (
-              <section className="chart-card" style={{ marginTop: 14 }}>
-                <h3>Hires since January <span className="chart-total">{data.hires.length} people · newest first</span></h3>
-                <div className="ta-scroll ta-tall">
-                  <table className="ta-table">
-                    <thead><tr><th>Hire date</th><th>Client</th><th>Role</th></tr></thead>
-                    <tbody>
-                      {data.hires.map((h, i) => (
-                        <tr key={i}><td>{fmtDate(h.date)}</td><td>{h.client === "Staff" ? "Puzzle (staff)" : h.client}</td><td>{h.role}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-          </div>
-        </div>
-
-        <div className="ta-block">
-          <div className="ta-sec"><h2>How 2026 roles ended up</h2><p>Fill rate {pct(totals.fillRate)}: filled ÷ (filled + lost). Cancelled roles are not counted.</p></div>
+          <div className="ta-sec"><h2>Outcomes</h2><p>What happened to the {totals.roles} roles opened since January.</p></div>
           <section className="chart-card">
-            <h3>Positions by outcome <span className="chart-total">{totals.roles} roles opened since January 2026</span></h3>
             {byStatus.map((s) => (
               <div className="ta-row" key={s.status}>
-                <span className="g-name">{s.status}<small>{s.roles} {s.roles === 1 ? "role" : "roles"}</small></span>
+                <span className="g-name">{s.status}<small>{plural(s.roles, "role", "roles")}</small></span>
                 <div className="ta-track"><div className="ta-seg" style={{ width: `${(s.positions / maxStatus) * 100}%`, background: s.status === "Filled" ? "var(--ok)" : s.status === "Cancelled" || s.status === "Lost" || s.status === "Dropped" ? "var(--seg-muted)" : "var(--blue)" }} /></div>
                 <span className="ta-val">{s.positions}</span>
               </div>
             ))}
+            <p className="ta-note">Fill rate = filled ÷ (filled + lost). Cancelled roles are not counted. Dropped roles disappeared from the tracker without a final status.</p>
           </section>
         </div>
 
-        <p className="ta-note">Billing rates and salaries are never loaded into this page.</p>
+        <div className="ta-block">
+          <div className="ta-sec"><h2>Detail</h2><p>Every open role and where its candidates are.</p></div>
+          <details className="chart-card ta-details">
+            <summary>Open roles ({openRoles.length})</summary>
+            <div className="ta-scroll">
+              <table className="ta-table">
+                <thead>
+                  <tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></tr>
+                </thead>
+                <tbody>
+                  {openRoles.map((r) => (
+                    <tr key={r.key}>
+                      <td><b>{r.title}</b></td>
+                      <td>{r.client}</td>
+                      <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
+                      <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
+                      <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
+                      <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
+                      <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+          {data.hires && (
+            <details className="chart-card ta-details">
+              <summary>Hires since January ({data.hires.length})</summary>
+              <div className="ta-scroll ta-tall">
+                <table className="ta-table">
+                  <thead><tr><th>Hire date</th><th>Client</th><th>Role</th></tr></thead>
+                  <tbody>
+                    {data.hires.map((h, i) => (
+                      <tr key={i}>
+                        <td>{new Date(h.date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</td>
+                        <td>{h.client === "Staff" ? "Puzzle (staff)" : h.client}</td>
+                        <td>{h.role}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+        </div>
+
+        <p className="ta-note">Billing rates, salaries, names and bonus amounts are never loaded into this page.</p>
       </main>
     </>
   );
