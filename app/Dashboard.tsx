@@ -284,13 +284,15 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                     <div className="cl-group" key={g.key}>
                       <h3 className={`cl-gh mg-${g.key}`}>{g.label}<span>{g.rows.length}</span></h3>
                       {g.rows.map((r) => {
-                        const sub = r.ago !== null ? (r.ago === 0 ? "Today" : r.ago === 1 ? "1 day ago" : `${r.ago} days ago`) : "No contact yet";
+                        const sub = r.ago !== null ? (r.ago === 0 ? "Today" : `${r.ago}d ago`) : "No contact";
+                        const stale = r.ago !== null && r.ago > 30;
+                        const firstSentence = r.m?.notes ? (r.m.notes.comment.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? r.m.notes.comment) : null;
                         return (
                           <button type="button" key={r.h.key} className={`cl-row cl-${g.key}`} onClick={() => setOpenKey(r.h.key)}>
                             <i className="cl-dot" />
                             <b className="cl-name">{r.h.name}</b>
-                            <span className="cl-sub">{sub}</span>
-                            <span className="cl-comment">{r.m?.notes ? r.m.notes.comment : <em>No comment yet</em>}</span>
+                            <span className={`cl-sub${r.ago === null ? " none" : stale ? " stale" : ""}`}>{sub}</span>
+                            <span className="cl-comment">{firstSentence ?? <em>No comment yet</em>}</span>
                             <span className="cl-go" aria-hidden="true">›</span>
                           </button>
                         );
@@ -511,7 +513,13 @@ function Charts({ rows, pilots, today, onOpen, onQuick }: { rows: ChartRow[]; pi
   // 2) Headcount by client
   const byPeople = rows.map((r) => ({ r, n: headcount(r.h) })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n || a.r.h.name.localeCompare(b.r.h.name));
   const maxN = Math.max(1, ...byPeople.map((x) => x.n));
-  const totalPeople = byPeople.reduce((n, x) => n + x.n, 0);
+  // A person on two clients is counted once in the total (each client bar still includes them)
+  const seen = new Set<string>();
+  let totalPeople = 0;
+  for (const r of rows) {
+    if (r.h.engineers.length === 0) totalPeople += r.h.headcount ?? 0;
+    for (const e of r.h.engineers) if (!seen.has(e.id)) { seen.add(e.id); totalPeople++; }
+  }
 
   // 3) Pilot timeline
   const dated = pilots.filter((p) => p.start && p.end);
@@ -548,7 +556,7 @@ function Charts({ rows, pilots, today, onOpen, onQuick }: { rows: ChartRow[]; pi
       </div>
 
       <div className="chart-card">
-        <h3>People by client <span className="chart-total">{totalPeople} total</span></h3>
+        <h3>People by client <span className="chart-total">{totalPeople} unique people</span></h3>
         <ul className="hbars">
           {byPeople.map(({ r, n }) => (
             <li key={r.h.key}>

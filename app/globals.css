@@ -540,3 +540,28 @@ h2.brief-title::before { display: none; }
   .cl-sub, .cl-comment { grid-column: 2 / -1; }
   .cl-go { display: none; }
 }
+
+/* ---- Client list: easier to scan ---- */
+.cl-head, .cl-row { grid-template-columns: 6px 210px 96px 1fr 18px; gap: 20px; }
+.cl-dot { display: none; }
+.cl-head { padding-left: 24px; }
+.cl-row { padding: 18px 16px 18px 18px; border-left: 6px solid var(--seg-muted); margin: 6px 0; border-bottom: 0; background: var(--panel); border-radius: 0 10px 10px 0; box-shadow: 0 1px 2px rgba(0,24,40,.05); grid-template-columns: 210px 96px 1fr 18px; }
+.cl-head { grid-template-columns: 6px 210px 96px 1fr 18px; padding-left: 24px; }
+.cl-head span:first-child { display: none; }
+.cl-head { grid-template-columns: 210px 96px 1fr 18px; }
+.cl-bad.cl-row { border-left-color: var(--bad); }
+.cl-warn.cl-row { border-left-color: var(--warn); }
+.cl-pilot.cl-row { border-left-color: var(--cyan); }
+.cl-ok.cl-row { border-left-color: var(--ok); }
+.cl-row:hover { background: #eef5fa; padding-left: 18px; transform: translateX(3px); }
+.cl-name { font-size: 19px; letter-spacing: -0.01em; }
+.cl-sub { justify-self: start; font-size: 13px; font-weight: 600; padding: 3px 12px; border-radius: 999px; background: var(--tint); color: var(--blue); }
+.cl-sub.stale { background: rgba(217,154,27,.2); color: var(--warn-text); }
+.cl-sub.none { background: transparent; color: var(--muted); font-weight: 400; padding-left: 0; }
+.cl-comment { font-size: 14px; color: var(--ink); -webkit-line-clamp: 2; }
+.cl-gh { margin-top: 22px; font-size: 13px; color: var(--blue); }
+@media (max-width: 860px) {
+  .cl-row { grid-template-columns: 1fr auto; }
+  .cl-comment { grid-column: 1 / -1; }
+  .cl-sub { grid-column: 2; grid-row: 1; }
+}
