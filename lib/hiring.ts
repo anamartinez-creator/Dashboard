@@ -4,6 +4,7 @@
 // Rates and salaries are confidential: they are never read into the objects below.
 
 import { createSign } from "crypto";
+import { sameClient } from "./health";
 
 export const OPEN_STATUSES = ["Active", "Pend Functional Spec"];
 export const PRESALES_STATUSES = ["Pending SOW", "MSA sent", "Sales/In progress"];
@@ -206,6 +207,7 @@ export type HiringData = {
   filled: Role[]; // Filled roles with a known start date, newest start first
   avgDaysToStart: number | null;
   monthly: { month: string; hires: number }[];
+  clientHistory: { group: string; clients: { client: string; total: number; filled: number; open: number; closed: number }[] }[]; // positions opened since January, per line of business and client
   hires: Hire[] | null; // from the Bonuses sheet when it is shared with the service account, else null
 };
 
@@ -245,6 +247,25 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
 
   // Hires count everyone hired from January this year, including roles opened the year before
   const hired = allRoles.filter((r) => r.status === "Filled" && (!r.startDate || r.startDate >= `${YEAR}-01-01`));
+  // The LOB column is typed by hand ("Engineer", "Engineerring", "Engineering"), so group by what it starts with
+  const lobGroup = (lob: string) => (/^engineer/i.test(lob.trim()) ? "Engineering" : /^customer/i.test(lob.trim()) ? "Customer Success" : "Staff & other");
+  type Hist = { client: string; total: number; filled: number; open: number; closed: number };
+  const hist = new Map<string, Hist[]>();
+  for (const r of roles) {
+    const g = lobGroup(r.lob);
+    const list = hist.get(g) ?? [];
+    let e = list.find((x) => sameClient(x.client, r.client));
+    if (!e) { e = { client: r.client, total: 0, filled: 0, open: 0, closed: 0 }; list.push(e); }
+    e.total += r.positions;
+    if (r.dropped || r.status === "Cancelled" || r.status === "Lost") e.closed += r.positions;
+    else if (r.status === "Filled") e.filled += r.positions;
+    else e.open += r.positions;
+    hist.set(g, list);
+  }
+  const clientHistory = ["Engineering", "Customer Success", "Staff & other"]
+    .filter((g) => hist.has(g))
+    .map((group) => ({ group, clients: (hist.get(group) as Hist[]).sort((x, y) => y.total - x.total || x.client.localeCompare(y.client)) }));
+
   const timed = hired.filter((r) => r.daysToStart !== null);
   const posW = timed.reduce((n, r) => n + r.positions, 0);
   const avg = posW ? timed.reduce((n, r) => n + (r.daysToStart as number) * r.positions, 0) / posW : null;
@@ -275,6 +296,7 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
     filled: hired.filter((r) => r.startDate).sort((a, b) => (b.startDate as string).localeCompare(a.startDate as string)),
     avgDaysToStart: avg,
     monthly: monthly.slice(0, lastMonth + 1),
+    clientHistory,
     hires: bonusHires ? [...bonusHires].sort((a, b) => b.date.localeCompare(a.date)) : null,
   };
 }

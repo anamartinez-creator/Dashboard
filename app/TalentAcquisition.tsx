@@ -17,6 +17,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
   const briefTone = stale > 0 ? "is-warn" : "is-ok";
 
   const maxClient = Math.max(1, ...byClient.map((c) => c.open + c.hold + c.presales));
+  const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
   const maxStatus = Math.max(1, ...byStatus.map((s) => s.positions));
 
@@ -86,6 +87,33 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
               </div>
             ))}
           </section>
+        </div>
+
+        <div className="ta-block">
+          <div className="ta-sec"><h2>Openings per client</h2><p>Positions each client has opened since January, and how they stand today.</p></div>
+          <div className="ta-grid">
+            {data.clientHistory.map((g) => (
+              <section className="chart-card" key={g.group}>
+                <h3>{g.group} <span className="chart-total">{g.clients.reduce((n, c) => n + c.total, 0)} openings since January</span></h3>
+                {g.clients.map((c) => (
+                  <div className="ta-row" key={c.client}>
+                    <span className="g-name">{c.client}</span>
+                    <div className="ta-track" title={`${c.filled} filled · ${c.open} open · ${c.closed} closed without a hire`}>
+                      <div className="ta-seg" style={{ width: `${(c.filled / histMax) * 100}%`, background: "var(--ok)" }} />
+                      <div className="ta-seg" style={{ width: `${(c.open / histMax) * 100}%`, background: "var(--blue)" }} />
+                      <div className="ta-seg" style={{ width: `${(c.closed / histMax) * 100}%`, background: "var(--seg-muted)" }} />
+                    </div>
+                    <span className="ta-val">{c.total}</span>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
+          <div className="ta-legend">
+            <span><i style={{ background: "var(--ok)" }} />Filled</span>
+            <span><i style={{ background: "var(--blue)" }} />Still open</span>
+            <span><i style={{ background: "var(--seg-muted)" }} />Cancelled, lost or dropped</span>
+          </div>
         </div>
 
         <div className="ta-block">
