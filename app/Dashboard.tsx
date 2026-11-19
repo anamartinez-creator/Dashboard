@@ -367,7 +367,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                       </ul>
                     </>
                   )}
-                  {openRow.h.url && <a className="drawer-cta" href={openRow.h.url} target="_blank" rel="noopener noreferrer">Open in Notion →</a>}
                   <h4>People</h4>
                   {openRow.h.engineers.length === 0 && <p className="muted">No people listed in Notion for this client.</p>}
                   <ul className="pc-list">
