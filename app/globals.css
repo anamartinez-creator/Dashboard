@@ -570,8 +570,9 @@ h2.brief-title::before { display: none; }
 .cl-head { font-family: var(--head-font); font-size: 16px; font-weight: 700; color: var(--blue); text-transform: none; letter-spacing: -0.01em; padding-bottom: 10px; }
 .clist-title { margin: 14px 0 -4px; }
 
-.hero-top { align-items: flex-start; }
-.hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; text-align: right; }
-.hero-right .owner { margin: 0; }
+.hero-in { padding-top: 32px; padding-bottom: 36px; gap: 28px; }
+.hero-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,.18); }
+.hero-bar .owner { margin: 0; text-align: right; font-size: 14px; line-height: 1.5; }
 .hero-logo { display: block; height: 44px; width: auto; margin: 0; }
-@media (max-width: 600px) { .hero-logo { height: 34px; } .hero-right { align-items: flex-start; text-align: left; } }
+.hero .hero-title { font-size: 38px; margin: 0; }
+@media (max-width: 600px) { .hero-logo { height: 34px; } .hero .hero-title { font-size: 28px; } .hero-bar { flex-wrap: wrap; } .hero-bar .owner { text-align: left; } }
