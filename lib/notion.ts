@@ -35,13 +35,37 @@ export type Client = { id: string; url: string; client: string; status: string; 
 
 type NotionPage = { id: string; url: string; properties: Record<string, any> };
 
+// Notion (via Cloudflare) sometimes answers 502/503/429 for a moment. Retry a few times before giving up.
+export class NotionTransientError extends Error {
+  transient: boolean;
+  constructor(message: string, transient: boolean) {
+    super(message);
+    this.transient = transient;
+  }
+}
+
+async function fetchWithRetry(url: string, init: RequestInit & { next?: { revalidate: number } }, tries = 4): Promise<Response> {
+  let last: Response | null = null;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || (res.status < 500 && res.status !== 429)) return res;
+      last = res;
+    } catch {
+      if (i === tries - 1) throw new NotionTransientError("Could not reach Notion. Please refresh in a minute.", true);
+    }
+    await new Promise((r) => setTimeout(r, 400 * 2 ** i));
+  }
+  return last as Response;
+}
+
 async function queryAll(dataSourceId: string): Promise<NotionPage[]> {
   const token = process.env.NOTION_TOKEN;
   if (!token) throw new Error("The NOTION_TOKEN variable is missing in Vercel.");
   const pages: NotionPage[] = [];
   let cursor: string | undefined;
   do {
-    const res = await fetch(`https://api.notion.com/v1/data_sources/${dataSourceId}/query`, {
+    const res = await fetchWithRetry(`https://api.notion.com/v1/data_sources/${dataSourceId}/query`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -55,7 +79,10 @@ async function queryAll(dataSourceId: string): Promise<NotionPage[]> {
       const body = await res.text();
       if (res.status === 404 || res.status === 403)
         throw new Error("Notion won't let the integration read the tracker. Connect it to the Master SDM Tracker page (••• → Connections).");
-      throw new Error(`Notion responded ${res.status}: ${body.slice(0, 200)}`);
+      const msg = res.status >= 500 || res.status === 429
+        ? `Notion is temporarily unavailable (${res.status}). Please refresh in a minute.`
+        : `Notion responded ${res.status}: ${body.slice(0, 200)}`;
+      throw new NotionTransientError(msg, res.status >= 500 || res.status === 429);
     }
     const json = await res.json();
     pages.push(...json.results);
