@@ -1,6 +1,5 @@
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES } from "@/lib/hiring";
-import type { AshbyData } from "@/lib/ashby";
 
 const fmtDate = (iso: string | null) => {
   if (!iso) return "—";
@@ -10,18 +9,12 @@ const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
 
-export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
+export default function TalentAcquisition({ data }: { data: HiringData }) {
   const { totals, open, byClient, openRoles, filled, monthly, byStatus, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
-  const ashbyAge = (opened: string | null) => (opened ? dayDiff(opened, today) : null);
-  const stale = ashby
-    ? ashby.roles.filter((r) => (ashbyAge(r.opened) ?? 0) > 30).length
-    : openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > 30).length;
-  const headline = ashby
-    ? ashby.roles.length === 0
-      ? "No open roles right now"
-      : `${ashby.roles.length} open ${ashby.roles.length === 1 ? "role" : "roles"} · ${ashby.totals.total} candidates in interviews or with the client`
-    : open.openPositions === 0
+  const stale = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > 30).length;
+  const headline =
+    open.openPositions === 0
       ? "No open positions right now"
       : `${open.openPositions} ${open.openPositions === 1 ? "position" : "positions"} open across ${open.openRoles} ${open.openRoles === 1 ? "role" : "roles"}${open.holdRoles ? ` · ${open.holdRoles} on hold` : ""}`;
   const briefTone = stale > 0 ? "is-warn" : "is-ok";
@@ -53,15 +46,14 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
 
       <main className="ta">
         <div className="ta-stats">
-          <div className="ta-stat"><b>{ashby ? ashby.roles.length : open.openPositions}</b><span>{ashby ? "Open roles (Ashby)" : `Open positions (${open.openRoles} roles)`}</span></div>
-          <div className="ta-stat"><b>{ashby ? ashby.totals.total : open.submitted}</b><span>{ashby ? "Candidates in SDM interview, submitted or in client interview (Ashby)" : "Candidates submitted on open roles"}</span></div>
+          <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({open.openRoles} roles)</span></div>
+          <div className="ta-stat"><b>{open.submitted}</b><span>Candidates submitted on open roles</span></div>
           <div className="ta-stat"><b>{totals.hires}</b><span>Hires in 2026 ({totals.filledRoles} roles filled)</span></div>
           <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate: filled ÷ (filled + cancelled + lost)</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
         </div>
 
         <div className="ta-grid">
-          {!ashby && (
           <section className="chart-card">
             <h3>Open positions by client <span className="chart-total">blue open · red on hold · cyan in sales</span></h3>
             {byClient.length === 0 && <p className="ta-note">Nothing open.</p>}
@@ -77,32 +69,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
               </div>
             ))}
           </section>
-          )}
 
-          {ashby ? (
-            <section className="chart-card">
-              <h3>Hiring pipeline <span className="chart-total">Ashby · open roles · candidates in the last three stages</span></h3>
-              {ashby.roles.filter((r) => r.total > 0).length === 0 && <p className="ta-note">No candidates in these stages yet.</p>}
-              {ashby.roles.filter((r) => r.total > 0).map((r) => (
-                <div className="ta-pipe" key={r.id}>
-                  <span className="g-name">{r.title}</span>
-                  <div>
-                    {([[r.sdm, "#8cc63f", "SDM interview"], [r.submitted, "#29abe0", "Submitted to the client"], [r.client, "#00406c", "Client interview"]] as [number, string, string][]).map(([n, col, lab]) => (
-                      <div className="ta-line" key={lab} title={`${lab}: ${n}`}>
-                        <span className="ta-bar" style={{ width: `${(n / Math.max(1, ...ashby.roles.flatMap((x) => [x.sdm, x.submitted, x.client]))) * 100}%`, background: col }} />
-                        <b>{n}</b>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <div className="ta-legend">
-                <span><i style={{ background: "#8cc63f" }} />SDM interview ({ashby.totals.sdm})</span>
-                <span><i style={{ background: "#29abe0" }} />Submitted to the client ({ashby.totals.submitted})</span>
-                <span><i style={{ background: "#00406c" }} />Client interview ({ashby.totals.client})</span>
-              </div>
-            </section>
-          ) : (
           <section className="chart-card">
             <h3>Hiring pipeline <span className="chart-total">per open role</span></h3>
             {pipeline.length === 0 && <p className="ta-note">No candidates in process yet.</p>}
@@ -125,7 +92,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
               <span><i style={{ background: "#00406c" }} />In process with client</span>
             </div>
           </section>
-          )}
 
           <section className="chart-card">
             <h3>Hires by month <span className="chart-total">2026</span></h3>
@@ -167,30 +133,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </section>
         )}
 
-        {ashby ? (
-          <section className="chart-card">
-            <h3>Open roles <span className="chart-total">Ashby · opening date from the job</span></h3>
-            <div className="ta-scroll">
-              <table className="ta-table">
-                <thead>
-                  <tr><th>Role</th><th>Opened</th><th className="c">Age</th><th className="c">SDM interview</th><th className="c">Submitted</th><th className="c">Client interview</th></tr>
-                </thead>
-                <tbody>
-                  {[...ashby.roles].sort((x, y) => (x.opened ?? "").localeCompare(y.opened ?? "")).map((r) => (
-                    <tr key={r.id}>
-                      <td><b>{r.title}</b>{r.location && <small>{r.location}</small>}</td>
-                      <td>{fmtDate(r.opened)}</td>
-                      <td className="c">{ashbyAge(r.opened) === null ? "—" : `${ashbyAge(r.opened)}d`}</td>
-                      <td className="c">{r.sdm}</td>
-                      <td className="c">{r.submitted}</td>
-                      <td className="c">{r.client}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : (
         <section className="chart-card">
           <h3>Open roles</h3>
           <div className="ta-scroll">
@@ -216,7 +158,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
             </table>
           </div>
         </section>
-        )}
         <p className="ta-note">Billing rates and salaries are never loaded into this page.</p>
       </main>
     </>
