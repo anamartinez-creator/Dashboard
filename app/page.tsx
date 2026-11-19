@@ -1,4 +1,4 @@
-import { loadTracker, NotionTransientError } from "@/lib/notion";
+import { loadTracker, shouldRethrow } from "@/lib/notion";
 import Dashboard from "./Dashboard";
 
 // Read Notion again at most every minute
@@ -10,7 +10,7 @@ export default async function Page() {
     return <Dashboard {...data} />;
   } catch (err) {
     // Temporary Notion hiccup: throw so Next keeps serving the last good copy of the page
-    if (err instanceof NotionTransientError && err.transient) throw err;
+    if (shouldRethrow(err)) throw err;
     return (
       <main className="wrap">
         <h1>Software Service Delivery Dashboard</h1>

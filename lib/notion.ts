@@ -11,6 +11,10 @@ export const DATA_SOURCES = {
   engineers: "2d370f1b-f516-8190-a868-000b9cd384fe", // 5. Software Development
   sows: "e6914ed6-200f-401b-a1d1-8e8e7be4968f", // 2. SOW Tracker (Updates)
   clients: "2d370f1b-f516-80fe-834f-000bcc90c067", // 3. Active Clients Status
+  // 4. Customer Success (Jose Paz): one team list per big client, plus one shared list ("Clients")
+  csTeams: "32c70f1b-f516-815e-beb4-000bd21cab67",
+  csProline: "2e770f1b-f516-812d-a2e7-000bd7440822",
+  csMyTime: "2e770f1b-f516-81ec-8798-000b31672672",
 };
 
 export type Engineer = {
@@ -43,6 +47,12 @@ export class NotionTransientError extends Error {
     this.transient = transient;
   }
 }
+
+// While Vercel builds the site, a Notion error must not fail the deploy: the page renders its error
+// message and refreshes itself after a minute. Once the site is live, a temporary error is rethrown so
+// Next keeps serving the last good copy.
+export const shouldRethrow = (err: unknown) =>
+  err instanceof NotionTransientError && err.transient && process.env.NEXT_PHASE !== "phase-production-build";
 
 async function fetchWithRetry(url: string, init: RequestInit & { next?: { revalidate: number } }, tries = 4): Promise<Response> {
   let last: Response | null = null;
@@ -269,4 +279,46 @@ export async function loadTracker() {
   }
 
   return { owner: OWNER, engineers, sows, clients, notes, loadedAt: new Date().toISOString(), today: todayIso() };
+}
+
+
+// --- Customer Success (Jose Paz) -------------------------------------------
+// Same shape as loadTracker, so the same dashboard can show it. People live in
+// three lists (Clients, Proline, MyTime); the last two have no Client column.
+// These lists have no 1:1 cadence or start dates, so cadence is marked "N/A".
+function mapCsPeople(pages: NotionPage[], defaultClient: string): Engineer[] {
+  return pages
+    .map((p) => {
+      const status = text(prop(p, "Status"));
+      return {
+        id: p.id,
+        url: p.url,
+        name: text(prop(p, "Name ")),
+        status: status === "Termination" || status === "Terminated" ? "Terminated" : status,
+        clients: [text(prop(p, "Client")) || defaultClient].filter(Boolean),
+        role: text(prop(p, "Role")),
+        sdms: ["Jose Paz"],
+        cadence: "N/A",
+        location: text(prop(p, "Location ")) || text(prop(p, "City")),
+        startDate: null,
+        pilotEnd: null,
+        pilotDaysLeft: null,
+        pilotTracked: false,
+      } as Engineer;
+    })
+    .filter((x) => x.name && x.status !== "Terminated" && x.status !== "Benched");
+}
+
+export async function loadCustomerSuccess() {
+  const [teams, proline, mytime, c] = await Promise.all([
+    queryAll(DATA_SOURCES.csTeams),
+    queryAll(DATA_SOURCES.csProline),
+    queryAll(DATA_SOURCES.csMyTime),
+    queryAll(DATA_SOURCES.clients),
+  ]);
+  const engineers = [...mapCsPeople(teams, ""), ...mapCsPeople(proline, "Proline CS"), ...mapCsPeople(mytime, "MyTime")].sort(
+    (a, b) => order(a.status) - order(b.status) || (a.clients[0] ?? "").localeCompare(b.clients[0] ?? "") || a.name.localeCompare(b.name)
+  );
+  const clients = mapClients(c).filter((x) => x.client && x.unit === "Customer Success");
+  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, loadedAt: new Date().toISOString(), today: todayIso() };
 }

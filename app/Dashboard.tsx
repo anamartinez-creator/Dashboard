@@ -7,7 +7,7 @@ import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
 import { CLIENT_MEETINGS } from "@/lib/client-meetings";
 import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
-type Props = { owner: string; notes: Record<string, LatestNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
+type Props = { title?: string; contacts?: boolean; owner: string; notes: Record<string, LatestNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
 const tone = (s: string) =>
   ({ "On track": "ok", Signed: "ok", "Needs Attention": "warn", Sent: "warn", "To confirm": "warn", "High Risk": "bad", Pending: "bad" } as Record<string, string>)[s] ?? "info";
@@ -37,7 +37,7 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ owner, notes, engineers, sows, clients, loadedAt, today }: Props) {
+export default function Dashboard({ title = "Software Service Delivery Dashboard", contacts = true, owner, notes, engineers, sows, clients, loadedAt, today }: Props) {
   const mine = engineers;
 
   const counts = useMemo(() => {
@@ -188,7 +188,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     new: (r) => r.h.engineers.some((e) => e.status === "New Hire" || e.status === "Hiring"),
     stale: (r) => r.ago !== null && r.ago > 30,
   };
-  const QUICK_LABEL: [Quick, string][] = [["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["ending", "Pilots ending soon"]];
+  const QUICK_LABEL: [Quick, string][] = ([["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["ending", "Pilots ending soon"]] as [Quick, string][]).filter(([k]) => k !== "ending" || pilotClients.length > 0);
   const mapRows = useMemo(() => {
     const sev = { red: 0, yellow: 1, green: 2 } as Record<Light, number>;
     const needle = q.trim().toLowerCase();
@@ -216,7 +216,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       <div className="hero">
         <div className="hero-in">
           <div className="hero-bar">
-            <h1 className="hero-title">Software Service Delivery Dashboard</h1>
+            <h1 className="hero-title">{title}</h1>
             <p className="owner">SDM: <b>{owner}</b><br />Updated {updated}</p>
           </div>
       <div className={`brief ${lights.red > 0 ? "is-bad" : lights.yellow > 0 ? "is-warn" : "is-ok"}`}>
@@ -270,7 +270,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               <h2 className="clist-title">Active Clients</h2>
               <div className="clist">
                 <div className="cl-head" aria-hidden="true">
-                  <span /><span>Client</span><span>Last contact</span><span>Latest comment</span><span />
+                  <span /><span>Client</span><span>{contacts ? "Last contact" : "Team"}</span><span>{contacts ? "Latest comment" : "Status"}</span><span />
                 </div>
                 {(() => {
                   const groups: { key: string; label: string; rows: typeof mapRows }[] = [
@@ -283,15 +283,15 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                     <div className="cl-group" key={g.key}>
                       <h3 className={`cl-gh mg-${g.key}`}>{g.label}<span>{g.rows.length}</span></h3>
                       {g.rows.map((r) => {
-                        const sub = r.ago !== null ? (r.ago === 0 ? "Today" : `${r.ago}d ago`) : "No contact";
-                        const stale = r.ago !== null && r.ago > 30;
+                        const sub = !contacts ? (() => { const n = r.h.engineers.length || r.h.headcount || 0; return `${n} ${n === 1 ? "person" : "people"}`; })() : r.ago !== null ? (r.ago === 0 ? "Today" : `${r.ago}d ago`) : "No contact";
+                        const stale = contacts && r.ago !== null && r.ago > 30;
                         const firstSentence = r.m?.notes ? (r.m.notes.comment.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? r.m.notes.comment) : null;
                         return (
                           <button type="button" key={r.h.key} className={`cl-row cl-${g.key}`} onClick={() => setOpenKey(r.h.key)}>
                             <i className="cl-dot" />
                             <b className="cl-name">{r.h.name}</b>
-                            <span className={`cl-sub${r.ago === null ? " none" : stale ? " stale" : ""}`}>{sub}</span>
-                            <span className="cl-comment">{firstSentence ?? <em>No comment yet</em>}</span>
+                            <span className={`cl-sub${contacts && r.ago === null ? " none" : stale ? " stale" : ""}`}>{sub}</span>
+                            <span className="cl-comment">{contacts ? (firstSentence ?? <em>No comment yet</em>) : (r.h.reasons.find((x) => x.level !== "info")?.text ?? "All good")}</span>
                             <span className="cl-go" aria-hidden="true">›</span>
                           </button>
                         );
