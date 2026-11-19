@@ -1,7 +1,7 @@
 // Candidates in process, read from Ashby (read-only). Needs ASHBY_API_KEY in Vercel.
 // Counts only three stages of each open job: SDM interview, Submitted to the client, Client interview.
 
-export type AshbyRole = { id: string; title: string; sdm: number; submitted: number; client: number; total: number };
+export type AshbyRole = { id: string; title: string; opened: string | null; location: string | null; sdm: number; submitted: number; client: number; total: number };
 export type AshbyData = { roles: AshbyRole[]; totals: { sdm: number; submitted: number; client: number; total: number } };
 
 const BASE = "https://api.ashbyhq.com";
@@ -45,11 +45,11 @@ const stageKind = (title: string): "sdm" | "submitted" | "client" | null => {
 export async function loadAshby(): Promise<AshbyData | null> {
   const key = process.env.ASHBY_API_KEY;
   if (!key) return null;
-  const jobs = await all<{ id: string; title: string }>(key, "job.list", { status: ["Open"] });
+  const jobs = await all<{ id: string; title: string; openedAt?: string | null; location?: { name?: string } | null }>(key, "job.list", { status: ["Open"] });
   const roles = await Promise.all(
     jobs.map(async (j) => {
       const apps = await all<{ currentInterviewStage?: { title?: string } | null }>(key, "application.list", { jobId: j.id, status: "Active" });
-      const r: AshbyRole = { id: j.id, title: j.title, sdm: 0, submitted: 0, client: 0, total: 0 };
+      const r: AshbyRole = { id: j.id, title: j.title, opened: j.openedAt ? j.openedAt.slice(0, 10) : null, location: j.location?.name ?? null, sdm: 0, submitted: 0, client: 0, total: 0 };
       for (const a of apps) {
         const k = stageKind(a.currentInterviewStage?.title ?? "");
         if (k) { r[k] += 1; r.total += 1; }
