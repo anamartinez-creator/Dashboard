@@ -566,3 +566,5 @@ h2.brief-title::before { display: none; }
   .cl-sub { grid-column: 2; grid-row: 1; }
 }
 .cl-head span:nth-child(4) { text-align: center; }
+/* Column titles match the other titles (heading font, blue, bold) */
+.cl-head { font-family: var(--head-font); font-size: 16px; font-weight: 700; color: var(--blue); text-transform: none; letter-spacing: -0.01em; padding-bottom: 10px; }
