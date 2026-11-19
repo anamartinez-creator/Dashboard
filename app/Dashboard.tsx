@@ -248,16 +248,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         {tab === "overview" && (
           <>
             <section className="exec">
-              {quick === "all" && (
-                <Charts
-                  rows={clientRows}
-                  pilots={pilotClients}
-                  today={today}
-                  onOpen={(k) => setOpenKey(k)}
-                  onQuick={(k) => setQuick(k)}
-                />
-              )}
-
               <div className="ask">
                 <span className="ask-label">Quick questions</span>
                 {QUICK_LABEL.map(([k, label]) => (
@@ -267,6 +257,16 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                 ))}
                 <input className="map-search" type="search" placeholder="Search a client or person…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search clients or people" />
               </div>
+
+              {quick === "all" && (
+                <Charts
+                  rows={clientRows}
+                  pilots={pilotClients}
+                  today={today}
+                  onOpen={(k) => setOpenKey(k)}
+                  onQuick={(k) => setQuick(k)}
+                />
+              )}
 
               {quick === "all" && (
               <div className="clist">
