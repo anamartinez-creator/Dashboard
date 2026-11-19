@@ -269,6 +269,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               )}
 
               {quick === "all" && (
+              <h2 className="clist-title">Active Clients</h2>
               <div className="clist">
                 <div className="cl-head" aria-hidden="true">
                   <span /><span>Client</span><span>Last contact</span><span>Latest comment</span><span />
