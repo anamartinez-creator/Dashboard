@@ -223,7 +223,8 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
   });
 
   const filled = roles.filter((r) => r.status === "Filled");
-  const lost = roles.filter((r) => r.status === "Cancelled" || r.status === "Lost");
+  // Cancelled roles are left out of the fill rate on purpose: only filled and lost roles count
+  const lost = roles.filter((r) => r.status === "Lost");
   const fillRate = filled.length + lost.length ? filled.length / (filled.length + lost.length) : null;
 
   const nowRoles = live.filter((r) => r.lastTab === latestTab);

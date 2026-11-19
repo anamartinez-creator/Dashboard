@@ -122,7 +122,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>How 2026 roles ended up</h2><p>Fill rate {pct(totals.fillRate)}: filled ÷ (filled + cancelled + lost).</p></div>
+          <div className="ta-sec"><h2>How 2026 roles ended up</h2><p>Fill rate {pct(totals.fillRate)}: filled ÷ (filled + lost). Cancelled roles are not counted.</p></div>
           <section className="chart-card">
             <h3>Positions by outcome <span className="chart-total">{totals.roles} roles opened since January 2026</span></h3>
             {byStatus.map((s) => (
