@@ -335,7 +335,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                           {staleTxt && <li className="r-yellow">{staleTxt}</li>}
                           {why.length === 0 && !staleTxt && <li className="r-info">Nothing flagged.</li>}
                         </ul>
-                        {r.m?.notes && <div className="note"><span className="note-head">Latest comment · {fmtDate(r.m.date)}</span><p>{r.m.notes.comment}</p></div>}
                       </article>
                     );
                   })}
