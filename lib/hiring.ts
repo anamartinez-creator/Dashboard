@@ -207,8 +207,8 @@ export type HiringData = {
 };
 
 export function summarize(allRoles: Role[], latestTab: string, today: string): HiringData {
-  // History (outcomes, hires, fill rate, time to hire) counts only roles opened from January of this year.
-  // Roles carried over from the year before still show up if they are open right now.
+  // Outcomes and fill rate count only roles opened from January of this year. Roles carried over from the year
+  // before still show up if they are open right now, and their hires still count as hires.
   const roles = allRoles.filter((r) => !r.carried);
   const live = allRoles.filter((r) => !r.dropped);
   const statusOf = (r: Role) => (r.dropped ? "Dropped" : r.status);
@@ -239,13 +239,15 @@ export function summarize(allRoles: Role[], latestTab: string, today: string): H
     clients.set(k, e);
   }
 
-  const timed = filled.filter((r) => r.daysToStart !== null);
+  // Hires count everyone hired from January this year, including roles opened the year before
+  const hired = allRoles.filter((r) => r.status === "Filled" && (!r.startDate || r.startDate >= `${YEAR}-01-01`));
+  const timed = hired.filter((r) => r.daysToStart !== null);
   const posW = timed.reduce((n, r) => n + r.positions, 0);
   const avg = posW ? timed.reduce((n, r) => n + (r.daysToStart as number) * r.positions, 0) / posW : null;
 
   const monthly = MONTHS.map((m, i) => ({
     month: m[0].toUpperCase() + m.slice(1),
-    hires: filled.filter((r) => r.startDate?.startsWith(`${YEAR}-${String(i + 1).padStart(2, "0")}`)).reduce((n, r) => n + r.positions, 0),
+    hires: hired.filter((r) => r.startDate?.startsWith(`${YEAR}-${String(i + 1).padStart(2, "0")}`)).reduce((n, r) => n + r.positions, 0),
   }));
   const lastMonth = Math.max(...monthly.map((m, i) => (m.hires ? i : -1)), parseInt(today.slice(5, 7), 10) - 1);
 
@@ -256,15 +258,15 @@ export function summarize(allRoles: Role[], latestTab: string, today: string): H
     totals: {
       roles: roles.length,
       positions: sum(roles),
-      filledRoles: filled.length,
-      hires: sum(filled),
+      filledRoles: hired.length,
+      hires: sum(hired),
       fillRate,
     },
     byStatus,
     open: { openRoles: openR.length, openPositions: sum(openR), holdRoles: holdR.length, holdPositions: sum(holdR), presalesRoles: preR.length, submitted: [...openR, ...holdR].reduce((n, r) => n + r.submitted, 0) },
     byClient: [...clients.values()].sort((a, b) => b.open + b.hold + b.presales - (a.open + a.hold + a.presales) || a.client.localeCompare(b.client)),
     openRoles: [...openR, ...holdR].sort((a, b) => (OPEN_STATUSES.includes(a.status) ? 0 : 1) - (OPEN_STATUSES.includes(b.status) ? 0 : 1) || (a.opened ?? "9").localeCompare(b.opened ?? "9")),
-    filled: filled.filter((r) => r.startDate).sort((a, b) => (b.startDate as string).localeCompare(a.startDate as string)),
+    filled: hired.filter((r) => r.startDate).sort((a, b) => (b.startDate as string).localeCompare(a.startDate as string)),
     avgDaysToStart: avg,
     monthly: monthly.slice(0, lastMonth + 1),
   };
