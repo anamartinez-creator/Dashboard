@@ -269,38 +269,36 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
               </div>
 
               {quick === "all" && (
-              <div className="groups-map">
-                {(() => {
-                  const groups: { key: string; label: string; rows: typeof mapRows }[] = [
-                    { key: "bad", label: "High Risk", rows: mapRows.filter((r) => !r.pilot && r.h.light === "red") },
-                    { key: "warn", label: "Needs Attention", rows: mapRows.filter((r) => !r.pilot && r.h.light === "yellow") },
-                    { key: "pilot", label: "Pilot", rows: mapRows.filter((r) => r.pilot) },
-                    { key: "ok", label: "On track", rows: mapRows.filter((r) => !r.pilot && r.h.light === "green") },
-                  ];
-                  return groups.filter((g) => g.rows.length > 0).map((g) => (
-                    <div className="mgroup" key={g.key}>
-                      <h3 className={`mgroup-h mg-${g.key}`}>{g.label}<span>{g.rows.length}</span></h3>
-                      <div className="map" role="list">
-                        {g.rows.map((r) => {
-                  const pi = r.pilotInfo;
-                          const sub = pi
-                            ? pi.notStarted ? `Pilot starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot period ended" : `Pilot · ${pi.daysLeft} days left`
-                            : r.ago !== null ? `Last contact ${r.ago === 0 ? "today" : `${r.ago} days ago`}` : "No contact on record";
-                          const n = headcount(r.h);
-                          return (
-                            <button type="button" role="listitem" key={r.h.key} className={`tile tile-${LIGHT_CLASS[r.h.light]}${openKey === r.h.key ? " open" : ""}`} onClick={() => setOpenKey(r.h.key)}>
-                              <span className="tile-top"><LightPill light={r.h.light} />{r.pilot && <span className="tag">Pilot</span>}</span>
-                              <span className="tile-name">{r.h.name}</span>
-                              <span className="tile-meta"><b>{n || "—"}</b> {n === 1 ? "person" : "people"}</span>
-                              <span className="tile-sub">{sub}</span>
-                              {r.m?.notes && <span className="tile-comment">{r.m.notes.comment}</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ));
-                })()}
+              <div className="mosaic-wrap">
+                <div className="mosaic-legend">
+                  {([["bad", "High Risk"], ["warn", "Needs Attention"], ["pilot", "Pilot"], ["ok", "On track"]] as const).map(([k, label]) => (
+                    <span key={k}><i className={`mz-${k}`} />{label}</span>
+                  ))}
+                  <em>Block size = people on the client. Click a block for details.</em>
+                </div>
+                <div className="mosaic" role="list">
+                  {[...mapRows]
+                    .sort((a, b) => {
+                      const rank = (r: (typeof mapRows)[number]) => (!r.pilot && r.h.light === "red" ? 0 : !r.pilot && r.h.light === "yellow" ? 1 : r.pilot ? 2 : 3);
+                      return rank(a) - rank(b) || headcount(b.h) - headcount(a.h) || a.h.name.localeCompare(b.h.name);
+                    })
+                    .map((r) => {
+                      const k = !r.pilot && r.h.light === "red" ? "bad" : !r.pilot && r.h.light === "yellow" ? "warn" : r.pilot ? "pilot" : "ok";
+                      const pi = r.pilotInfo;
+                      const sub = pi
+                        ? pi.notStarted ? `Starts ${fmtDate(pi.start)}` : pi.daysLeft === null ? "Pilot" : pi.daysLeft < 0 ? "Pilot ended" : `${pi.daysLeft} days left`
+                        : r.ago !== null ? `Contact ${r.ago === 0 ? "today" : `${r.ago}d ago`}` : "No contact yet";
+                      const n = headcount(r.h);
+                      return (
+                        <button type="button" role="listitem" key={r.h.key} className={`mblock mz-${k}`} style={{ flex: `${Math.max(1, n)} 1 ${110 + Math.max(1, n) * 30}px` }} onClick={() => setOpenKey(r.h.key)}>
+                          <span className="mb-n">{n || "—"}</span>
+                          <span className="mb-name">{r.h.name}</span>
+                          <span className="mb-sub">{sub}</span>
+                          {r.m?.notes && <span className="mb-pop"><b>{r.h.name} · {fmtDate(r.m.date)}</b>{r.m.notes.comment}</span>}
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
               )}
               {quick !== "all" && mapRows.length === 0 && <p className="muted">No clients match this question.</p>}
