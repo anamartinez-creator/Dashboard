@@ -217,7 +217,8 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
         <div className="hero-in">
           <div className="hero-top">
             <div>
-              <p className="eyebrow">Puzzle · Service Delivery</p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="hero-logo" src="/puzzle-logo-white.png" alt="Puzzle" width={178} height={39} />
               <h1>Software Service Delivery Dashboard</h1>
             </div>
             <p className="owner">SDM: <b>{owner}</b><br />Updated {updated}</p>
