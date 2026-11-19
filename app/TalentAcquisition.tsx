@@ -1,6 +1,7 @@
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES } from "@/lib/hiring";
 
+const fmtDate = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
@@ -40,7 +41,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         <div className="ta-stats">
           <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({open.openRoles} roles)</span></div>
           <div className="ta-stat"><b>{open.submitted}</b><span>Candidates submitted on open roles</span></div>
-          <div className="ta-stat"><b>{totals.hires}</b><span>Hires in 2026 ({totals.filledRoles} roles filled)</span></div>
+          <div className="ta-stat"><b>{totals.hires}</b><span>{data.hires ? "Hires in 2026" : `Hires in 2026 (${totals.filledRoles} roles filled)`}</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
         </div>
 
@@ -88,7 +89,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Hires</h2><p>How many people joined each month.</p></div>
+          <div className="ta-sec"><h2>Hires</h2><p>{data.hires ? "People hired since January, from the Bonuses sheet." : "How many people joined each month."}</p></div>
           <div>
             <section className="chart-card">
               <h3>Hires by month <span className="chart-total">2026</span></h3>
@@ -102,6 +103,21 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                 ))}
               </div>
             </section>
+            {data.hires && (
+              <section className="chart-card" style={{ marginTop: 14 }}>
+                <h3>Hires since January <span className="chart-total">{data.hires.length} people · newest first</span></h3>
+                <div className="ta-scroll ta-tall">
+                  <table className="ta-table">
+                    <thead><tr><th>Hire date</th><th>Client</th><th>Role</th></tr></thead>
+                    <tbody>
+                      {data.hires.map((h, i) => (
+                        <tr key={i}><td>{fmtDate(h.date)}</td><td>{h.client === "Staff" ? "Puzzle (staff)" : h.client}</td><td>{h.role}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
           </div>
         </div>
 

@@ -647,3 +647,4 @@ h2.brief-title::before { display: none; }
 .ta-grid > .chart-card { display: flex; flex-direction: column; }
 .ta-grid > .chart-card .ta-cols { flex: 1; height: auto; min-height: 170px; padding-top: 26px; }
 @media (max-width: 900px) { .ta-stat b { font-size: 26px; } }
+.ta-tall { max-height: 380px; overflow-y: auto; }

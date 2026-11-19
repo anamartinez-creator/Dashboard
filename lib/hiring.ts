@@ -192,6 +192,8 @@ export function buildRoles(tabsIn: Tab[]): { roles: Role[]; latestTab: string } 
 
 // --- Numbers shown on the page ---------------------------------------------
 
+export type Hire = { date: string; client: string; role: string }; // no names, no payment amounts
+
 export type HiringData = {
   latestTab: string;
   loadedAt: string;
@@ -204,9 +206,10 @@ export type HiringData = {
   filled: Role[]; // Filled roles with a known start date, newest start first
   avgDaysToStart: number | null;
   monthly: { month: string; hires: number }[];
+  hires: Hire[] | null; // from the Bonuses sheet when it is shared with the service account, else null
 };
 
-export function summarize(allRoles: Role[], latestTab: string, today: string): HiringData {
+export function summarize(allRoles: Role[], latestTab: string, today: string, bonusHires: Hire[] | null = null): HiringData {
   // Outcomes and fill rate count only roles opened from January of this year. Roles carried over from the year
   // before still show up if they are open right now, and their hires still count as hires.
   const roles = allRoles.filter((r) => !r.carried);
@@ -247,7 +250,9 @@ export function summarize(allRoles: Role[], latestTab: string, today: string): H
 
   const monthly = MONTHS.map((m, i) => ({
     month: m[0].toUpperCase() + m.slice(1),
-    hires: hired.filter((r) => r.startDate?.startsWith(`${YEAR}-${String(i + 1).padStart(2, "0")}`)).reduce((n, r) => n + r.positions, 0),
+    hires: bonusHires
+      ? bonusHires.filter((h) => h.date.startsWith(`${YEAR}-${String(i + 1).padStart(2, "0")}`)).length
+      : hired.filter((r) => r.startDate?.startsWith(`${YEAR}-${String(i + 1).padStart(2, "0")}`)).reduce((n, r) => n + r.positions, 0),
   }));
   const lastMonth = Math.max(...monthly.map((m, i) => (m.hires ? i : -1)), parseInt(today.slice(5, 7), 10) - 1);
 
@@ -259,7 +264,7 @@ export function summarize(allRoles: Role[], latestTab: string, today: string): H
       roles: roles.length,
       positions: sum(roles),
       filledRoles: hired.length,
-      hires: sum(hired),
+      hires: bonusHires ? bonusHires.length : sum(hired),
       fillRate,
     },
     byStatus,
@@ -269,6 +274,7 @@ export function summarize(allRoles: Role[], latestTab: string, today: string): H
     filled: hired.filter((r) => r.startDate).sort((a, b) => (b.startDate as string).localeCompare(a.startDate as string)),
     avgDaysToStart: avg,
     monthly: monthly.slice(0, lastMonth + 1),
+    hires: bonusHires ? [...bonusHires].sort((a, b) => b.date.localeCompare(a.date)) : null,
   };
 }
 
@@ -323,6 +329,30 @@ async function sheetsGet(path: string): Promise<any> {
   return res.json();
 }
 
+// Hires from the "Bonuses - Hires and Referrals" sheet (tabs "Q1 2026"…"Q4 2026"). Only columns B:E are read
+// (hire date, name, client, role) and the name is dropped, so no payment amounts or names reach the page.
+const BONUSES_SHEET_ID = process.env.BONUSES_SHEET_ID || "1dEAxRrRao7rdisJutps4PcDRdrcOtpP8aCqT9yEML3g";
+async function loadBonusHires(): Promise<Hire[] | null> {
+  try {
+    const ranges = [1, 2, 3, 4].map((q) => `ranges=${encodeURIComponent(`'Q${q} ${YEAR}'!B1:E80`)}`).join("&");
+    const data = await sheetsGet(`${BONUSES_SHEET_ID}/values:batchGet?${ranges}&valueRenderOption=FORMATTED_VALUE`);
+    const out: Hire[] = [];
+    for (const v of data.valueRanges ?? []) {
+      const rows: string[][] = v.values ?? [];
+      const h = rows.findIndex((r) => (r[0] ?? "").trim() === "Hire Date" && (r[1] ?? "").trim() === "Hire Name");
+      if (h < 0) continue;
+      for (const r of rows.slice(h + 1)) {
+        const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((r[0] ?? "").trim());
+        if (!m) break;
+        out.push({ date: `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`, client: (r[2] ?? "").trim(), role: (r[3] ?? "").trim() });
+      }
+    }
+    return out.length ? out : null;
+  } catch {
+    return null; // not shared with the service account (or a tab is missing): the page falls back to the openings sheet
+  }
+}
+
 export async function loadHiring(today: string): Promise<HiringData> {
   const id = process.env.HIRING_SHEET_ID;
   if (!id) throw new HiringSetupError("HIRING_SHEET_ID is missing in Vercel.");
@@ -333,5 +363,5 @@ export async function loadHiring(today: string): Promise<HiringData> {
   const data = await sheetsGet(`${id}/values:batchGet?${ranges}&valueRenderOption=FORMATTED_VALUE`);
   const tabs: Tab[] = (data.valueRanges ?? []).map((v: any, i: number) => ({ name: names[i], rows: v.values ?? [] }));
   const { roles, latestTab } = buildRoles(tabs);
-  return summarize(roles, latestTab, today);
+  return summarize(roles, latestTab, today, await loadBonusHires());
 }
