@@ -385,19 +385,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
             )}
 
 
-            {quick === "all" && recentComments.length > 0 && (
-              <section>
-                <h2>Latest client comments</h2>
-                <div className="comment-cards">
-                  {recentComments.map((r) => (
-                    <div className="note comment-card" key={r.h.key}>
-                      <span className="note-head"><b>{r.h.name}</b> · {fmtDate(r.m!.date)}</span>
-                      <p>{r.m!.notes!.comment}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </>
         )}
 
