@@ -50,7 +50,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
           <div className="ta-stat"><b>{open.submitted}</b><span>Candidates submitted on open roles</span></div>
           <div className="ta-stat"><b>{totals.hires}</b><span>Hires in 2026 ({totals.filledRoles} roles filled)</span></div>
           <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate: filled ÷ (filled + cancelled + lost)</span></div>
-          <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to start</span></div>
+          <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
         </div>
 
         <div className="ta-grid">
@@ -94,7 +94,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
           </section>
 
           <section className="chart-card">
-            <h3>Hires by start month <span className="chart-total">2026</span></h3>
+            <h3>Hires by month <span className="chart-total">2026</span></h3>
             <div className="ta-cols">
               {monthly.map((m) => (
                 <div className="ta-col" key={m.month}>
@@ -121,7 +121,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
 
         {recent.length > 0 && (
           <section className="chart-card">
-            <h3>Time to start <span className="chart-total">days from opening to start date · latest {recent.length} roles</span></h3>
+            <h3>Time to hire <span className="chart-total">days from opening to hire date · latest {recent.length} roles</span></h3>
             {recent.map((r) => (
               <div className="ta-row" key={r.key}>
                 <span className="g-name">{r.title}<small>{r.client}{r.positions > 1 ? ` · ${r.positions} positions` : ""} · starts {fmtDate(r.startDate)}</small></span>
@@ -129,7 +129,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                 <span className="ta-val">{r.daysToStart}d</span>
               </div>
             ))}
-            <p className="ta-note">Start dates come from the sheet's Closed Date, or from the "starting on…" note when it is still =today().</p>
+            <p className="ta-note">Hire dates come from the sheet's Closed Date, or from the "starting on…" note when it is still =today().</p>
           </section>
         )}
 
