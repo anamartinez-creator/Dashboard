@@ -576,3 +576,27 @@ h2.brief-title::before { display: none; }
 .hero-logo { display: block; height: 44px; width: auto; margin: 0; }
 .hero .hero-title { font-size: 38px; margin: 0; }
 @media (max-width: 600px) { .hero-logo { height: 34px; } .hero .hero-title { font-size: 28px; } .hero-bar { flex-wrap: wrap; } .hero-bar .owner { text-align: left; } }
+
+/* ---- Left panel: business units ---- */
+.app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+.app-main { min-width: 0; }
+.side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 8px; padding: 28px 16px; background: linear-gradient(180deg, #002f52 0%, #00406c 100%); color: #fff; border-right: 1px solid rgba(255,255,255,.08); }
+.side-brand { padding: 0 8px 22px; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.16); }
+.side-brand img { display: block; height: 40px; width: auto; }
+.side-label { margin: 0 8px 4px; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #9fc2da; }
+.side-nav { display: flex; flex-direction: column; gap: 4px; }
+.side-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; color: #cfe0ee; text-decoration: none; font-weight: 500; font-size: 15px; border-left: 4px solid transparent; transition: background .15s, color .15s; }
+.side-item:hover { background: rgba(255,255,255,.09); color: #fff; }
+.side-item.is-active { background: rgba(255,255,255,.14); color: #fff; border-left-color: var(--green); font-weight: 600; }
+.side-item svg { flex: none; opacity: .9; }
+.app-main .hero-bar { border-bottom: 0; padding-bottom: 0; align-items: flex-end; flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 16px; }
+  .side-brand { padding: 0; margin: 0; border: 0; }
+  .side-brand img { height: 30px; }
+  .side-label { display: none; }
+  .side-nav { flex-direction: row; overflow-x: auto; width: 100%; gap: 6px; }
+  .side-item { white-space: nowrap; padding: 9px 12px; border-left: 0; border-bottom: 3px solid transparent; border-radius: 8px; font-size: 14px; }
+  .side-item.is-active { border-bottom-color: var(--green); }
+}
