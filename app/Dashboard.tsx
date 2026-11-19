@@ -59,7 +59,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   const [selected, setSelected] = useState<string | null>(null);
 
   // Tabs: Overview (what needs action), Clients, People. The tab is kept in the URL hash.
-  type Tab = "overview" | "clients" | "people";
+  type Tab = "overview" | "people";
   const [tab, setTabState] = useState<Tab>("overview");
   const setTab = (t: Tab) => {
     setTabState(t);
@@ -67,11 +67,11 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
   };
   useEffect(() => {
     const h = window.location.hash.slice(1);
-    if (h === "clients" || h === "people") setTabState(h);
+    if (h === "people") setTabState(h);
   }, []);
 
   // Summary cards jump to their tab and section (client cards also set the color filter)
-  const TAB_OF: Record<string, Tab> = { "sec-clients": "clients", "sec-followup": "people", "sec-team": "people" };
+  const TAB_OF: Record<string, Tab> = { "sec-followup": "people", "sec-team": "people" };
   const goTo = (id: string, light?: Light | null) => {
     if (light !== undefined) setLightFilter(light);
     setTab(TAB_OF[id] ?? "overview");
@@ -238,7 +238,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
       <nav className="tabs" role="tablist" aria-label="Dashboard sections">
         <div className="tabs-in">
-          {([["overview", "Overview"], ["clients", "Clients"], ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
+          {([["overview", "Overview"], ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
             <button type="button" key={t} role="tab" aria-selected={tab === t} className={`tab${tab === t ? " on" : ""}`} onClick={() => setTab(t)}>{label}</button>
           ))}
         </div>
@@ -398,37 +398,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                 </div>
               </section>
             )}
-          </>
-        )}
-
-        {tab === "clients" && (
-          <>
-      <section id="sec-clients">
-        <h2>Clients</h2>
-        <div className="tw clients-tw">
-          <table className="clients-table">
-            <thead>
-              <tr><th>Client</th><th className="center">Status</th><th className="center">People</th></tr>
-            </thead>
-            <tbody>
-              {clientRows.length === 0 && <EmptyRow cols={3} text="No clients on your team." />}
-              {clientRows.map(({ h, pilot }) => (
-                <tr key={h.key}>
-                  <td>{h.url ? <NameLink href={h.url}>{h.name}</NameLink> : h.name}</td>
-                  <td className="center">{pilot ? <Pill s="Pilot" className="info" /> : <Pill s={LIGHT_LABEL[h.light]} className={LIGHT_CLASS[h.light]} />}</td>
-                  <td className="center">{headcount(h) || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr><td>Total · {clientRows.length} clients</td><td /><td className="center">{clientRows.reduce((n, r) => n + headcount(r.h), 0)}</td></tr>
-            </tfoot>
-          </table>
-        </div>
-        {clientRows.reduce((n, r) => n + headcount(r.h), 0) !== counts.total && (
-          <p className="hint">{counts.total} unique people on the team; the total above counts someone once for each client they are on.</p>
-        )}
-      </section>
           </>
         )}
 
