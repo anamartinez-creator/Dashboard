@@ -1,16 +1,12 @@
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES } from "@/lib/hiring";
 
-const fmtDate = (iso: string | null) => {
-  if (!iso) return "—";
-  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-};
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
 
 export default function TalentAcquisition({ data }: { data: HiringData }) {
-  const { totals, open, byClient, openRoles, filled, monthly, byStatus, today } = data;
+  const { totals, open, byClient, openRoles, monthly, byStatus, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
   const stale = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > 30).length;
   const headline =
@@ -21,8 +17,6 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
 
   const maxClient = Math.max(1, ...byClient.map((c) => c.open + c.hold + c.presales));
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
-  const recent = filled.filter((r) => r.daysToStart !== null).slice(0, 14);
-  const maxDays = Math.max(1, ...recent.map((r) => r.daysToStart as number));
   const maxStatus = Math.max(1, ...byStatus.map((s) => s.positions));
 
   return (
@@ -94,8 +88,8 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Hires</h2><p>How many people joined each month and how long it took.</p></div>
-          <div className="ta-grid">
+          <div className="ta-sec"><h2>Hires</h2><p>How many people joined each month.</p></div>
+          <div>
             <section className="chart-card">
               <h3>Hires by month <span className="chart-total">2026</span></h3>
               <div className="ta-cols">
@@ -108,26 +102,13 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                 ))}
               </div>
             </section>
-            {recent.length > 0 && (
-              <section className="chart-card">
-                <h3>Time to hire <span className="chart-total">days from opening · latest {recent.length} roles</span></h3>
-                {recent.map((r) => (
-                  <div className="ta-row" key={r.key}>
-                    <span className="g-name">{r.title}<small>{r.client}{r.positions > 1 ? ` · ${r.positions} positions` : ""} · {fmtDate(r.startDate)}</small></span>
-                    <div className="ta-track"><div className="ta-seg" style={{ width: `${((r.daysToStart as number) / maxDays) * 100}%`, background: "var(--blue)" }} /></div>
-                    <span className="ta-val">{r.daysToStart}d</span>
-                  </div>
-                ))}
-                <p className="ta-note">Hire dates come from the sheet's Closed Date, or from the "starting on…" note when it is still =today().</p>
-              </section>
-            )}
           </div>
         </div>
 
         <div className="ta-block">
           <div className="ta-sec"><h2>How 2026 roles ended up</h2><p>Fill rate {pct(totals.fillRate)}: filled ÷ (filled + cancelled + lost).</p></div>
           <section className="chart-card">
-            <h3>Positions by outcome <span className="chart-total">{totals.opened2026} opened in 2026 · {totals.carried} carried over from 2025</span></h3>
+            <h3>Positions by outcome <span className="chart-total">{totals.roles} roles opened since January 2026</span></h3>
             {byStatus.map((s) => (
               <div className="ta-row" key={s.status}>
                 <span className="g-name">{s.status}<small>{s.roles} {s.roles === 1 ? "role" : "roles"}</small></span>

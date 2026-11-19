@@ -196,7 +196,7 @@ export type HiringData = {
   latestTab: string;
   loadedAt: string;
   today: string;
-  totals: { roles: number; positions: number; filledRoles: number; hires: number; fillRate: number | null; opened2026: number; carried: number };
+  totals: { roles: number; positions: number; filledRoles: number; hires: number; fillRate: number | null };
   byStatus: { status: string; roles: number; positions: number }[];
   open: { openRoles: number; openPositions: number; holdRoles: number; holdPositions: number; presalesRoles: number; submitted: number };
   byClient: { client: string; open: number; hold: number; presales: number }[];
@@ -206,8 +206,11 @@ export type HiringData = {
   monthly: { month: string; hires: number }[];
 };
 
-export function summarize(roles: Role[], latestTab: string, today: string): HiringData {
-  const live = roles.filter((r) => !r.dropped);
+export function summarize(allRoles: Role[], latestTab: string, today: string): HiringData {
+  // History (outcomes, hires, fill rate, time to hire) counts only roles opened from January of this year.
+  // Roles carried over from the year before still show up if they are open right now.
+  const roles = allRoles.filter((r) => !r.carried);
+  const live = allRoles.filter((r) => !r.dropped);
   const statusOf = (r: Role) => (r.dropped ? "Dropped" : r.status);
   const order = ["Active", "Pend Functional Spec", "On Hold", "Pending SOW", "MSA sent", "Sales/In progress", "Filled", "Cancelled", "Lost", "Dropped"];
   const seen = [...new Set(roles.map(statusOf))];
@@ -256,8 +259,6 @@ export function summarize(roles: Role[], latestTab: string, today: string): Hiri
       filledRoles: filled.length,
       hires: sum(filled),
       fillRate,
-      opened2026: roles.filter((r) => !r.carried).length,
-      carried: roles.filter((r) => r.carried).length,
     },
     byStatus,
     open: { openRoles: openR.length, openPositions: sum(openR), holdRoles: holdR.length, holdPositions: sum(holdR), presalesRoles: preR.length, submitted: [...openR, ...holdR].reduce((n, r) => n + r.submitted, 0) },
