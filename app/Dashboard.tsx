@@ -328,7 +328,6 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                             <div className="detail-pilot">
                               <div className="detail-pilot-row"><PilotTag p={pi} /><span className="muted">{range(pi.start, pi.end)}</span></div>
                               <div className="pilot-track" role="img" aria-label={`${Math.round(pct)}% of the pilot elapsed`}><span style={{ width: `${pct}%` }} /></div>
-                              {r.h.engineers.length > 0 && <p className="ov-sub">{[...r.h.engineers].sort((a, b) => a.name.localeCompare(b.name)).map((e) => e.name).join(", ")}</p>}
                             </div>
                           );
                         })()}
