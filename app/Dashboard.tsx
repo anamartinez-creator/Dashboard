@@ -216,12 +216,12 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
       <div className="hero">
         <div className="hero-in">
           <div className="hero-top">
-            <div>
+            <h1>Software Service Delivery Dashboard</h1>
+            <div className="hero-right">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="hero-logo" src="/puzzle-logo-white.png" alt="Puzzle" width={178} height={39} />
-              <h1>Software Service Delivery Dashboard</h1>
+              <p className="owner">SDM: <b>{owner}</b><br />Updated {updated}</p>
             </div>
-            <p className="owner">SDM: <b>{owner}</b><br />Updated {updated}</p>
           </div>
       <div className={`brief ${lights.red > 0 ? "is-bad" : lights.yellow > 0 ? "is-warn" : "is-ok"}`}>
         <div className="brief-main">

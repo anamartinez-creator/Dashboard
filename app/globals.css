@@ -570,5 +570,8 @@ h2.brief-title::before { display: none; }
 .cl-head { font-family: var(--head-font); font-size: 16px; font-weight: 700; color: var(--blue); text-transform: none; letter-spacing: -0.01em; padding-bottom: 10px; }
 .clist-title { margin: 14px 0 -4px; }
 
-.hero-logo { display: block; height: 40px; width: auto; margin: 0 0 16px; }
-@media (max-width: 600px) { .hero-logo { height: 32px; } }
+.hero-top { align-items: flex-start; }
+.hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; text-align: right; }
+.hero-right .owner { margin: 0; }
+.hero-logo { display: block; height: 44px; width: auto; margin: 0; }
+@media (max-width: 600px) { .hero-logo { height: 34px; } .hero-right { align-items: flex-start; text-align: left; } }
