@@ -600,3 +600,36 @@ h2.brief-title::before { display: none; }
   .side-item { white-space: nowrap; padding: 9px 12px; border-left: 0; border-bottom: 3px solid transparent; border-radius: 8px; font-size: 14px; }
   .side-item.is-active { border-bottom-color: var(--green); }
 }
+
+/* ---- Talent Acquisition ---- */
+.ta { padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 1200px; }
+.ta-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.ta-stat { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow-1); }
+.ta-stat b { display: block; font-family: var(--head-font); font-size: 30px; line-height: 1.1; color: var(--blue); }
+.ta-stat span { font-size: 12px; color: var(--muted); }
+.ta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .ta-grid { grid-template-columns: minmax(0, 1fr); } .ta { padding: 16px; } }
+.ta-row { display: grid; grid-template-columns: minmax(110px, 190px) 1fr 40px; gap: 12px; align-items: center; padding: 4px 0; }
+.ta-track { display: flex; height: 18px; background: var(--tint); border-radius: 999px; overflow: hidden; }
+.ta-seg { height: 100%; }
+.ta-val { font-size: 13px; font-weight: 600; color: var(--blue); text-align: right; font-variant-numeric: tabular-nums; }
+.ta small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.ta-pipe { display: grid; grid-template-columns: minmax(110px, 190px) 1fr; gap: 12px; padding: 6px 0; align-items: center; }
+.ta-line { display: flex; align-items: center; gap: 8px; height: 14px; margin: 2px 0; }
+.ta-bar { height: 10px; border-radius: 99px; min-width: 4px; }
+.ta-line b { font-size: 11px; color: var(--muted); }
+.ta-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.ta-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.ta-cols { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding-top: 8px; }
+.ta-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; font-size: 11px; color: var(--muted); }
+.ta-col b { color: var(--blue); font-size: 12px; min-height: 16px; }
+.ta-colbar { width: 100%; max-width: 38px; background: linear-gradient(180deg, var(--cyan), var(--blue)); border-radius: 6px 6px 0 0; min-height: 2px; flex: none; }
+.ta-col { position: relative; }
+.ta-col .ta-colbar { align-self: center; }
+.ta-note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.ta-scroll { overflow-x: auto; }
+.ta-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ta-table th { text-align: left; font-family: var(--head-font); color: var(--blue); font-size: 13px; padding: 8px; border-bottom: 2px solid var(--blue); white-space: nowrap; }
+.ta-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ta-table .c { text-align: center; }
+.ta-comment { color: var(--muted); max-width: 280px; }

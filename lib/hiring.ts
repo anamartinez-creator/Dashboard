@@ -1,0 +1,334 @@
+// Reads the "Active Job Openings- Monthly" Google Sheet (2026 tabs only) and turns it
+// into one record per role. Rules: see claude/job-openings-tracker-rules.md in the project.
+//
+// Rates and salaries are confidential: they are never read into the objects below.
+
+import { createSign } from "crypto";
+
+export const OPEN_STATUSES = ["Active", "Pend Functional Spec"];
+export const PRESALES_STATUSES = ["Pending SOW", "MSA sent", "Sales/In progress"];
+export const FINAL_STATUSES = ["Filled", "Cancelled", "Lost"];
+
+export type Role = {
+  key: string;
+  title: string;
+  client: string;
+  owner: string;
+  lob: string;
+  opened: string | null; // ISO
+  positions: number;
+  status: string; // latest status
+  internal: number;
+  submitted: number;
+  inProcess: number;
+  comment: string;
+  firstTab: string;
+  lastTab: string;
+  startDate: string | null; // ISO, for Filled roles
+  daysToStart: number | null;
+  carried: boolean; // opened before 2026 (or no opening date)
+  dropped: boolean; // vanished from the tracker without a final status
+};
+
+export type Tab = { name: string; rows: string[][] };
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const YEAR = 2026;
+
+const clean = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
+const normClient = (s: string) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+const normTitle = (s: string) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+const toInt = (s: string) => {
+  const n = parseInt(clean(s).replace(/[^0-9-]/g, ""), 10);
+  return Number.isFinite(n) ? n : 0;
+};
+
+// "11/5/2026" -> "2026-11-05"
+function isoDate(s: string): string | null {
+  const m = clean(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+}
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
+
+const STATUS_CANON: Record<string, string> = {
+  active: "Active",
+  "pend functional spec": "Pend Functional Spec",
+  "pending sow": "Pending SOW",
+  "msa sent": "MSA sent",
+  "sales/in progress": "Sales/In progress",
+  "on hold": "On Hold",
+  filled: "Filled",
+  cancelled: "Cancelled",
+  canceled: "Cancelled",
+  lost: "Lost",
+};
+const canonStatus = (s: string) => STATUS_CANON[clean(s).toLowerCase()] ?? clean(s);
+
+// "Mateus starting on Jun 8th" -> "2026-06-08"
+function startFromComment(comment: string, year: number): string | null {
+  const m = comment.match(/starting(?:\s+date)?(?:\s+on)?\s+([A-Za-z]{3,9})\.?\s+(\d{1,2})/i);
+  if (!m) return null;
+  const mi = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase());
+  if (mi < 0) return null;
+  return `${year}-${String(mi + 1).padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+}
+
+type Row = { title: string; client: string; owner: string; lob: string; opened: string | null; positions: number; status: string; closed: string | null; internal: number; submitted: number; inProcess: number; comment: string };
+
+function parseTab(tab: Tab): Row[] {
+  const h = tab.rows.findIndex((r) => clean(r[1]).toLowerCase() === "opening date");
+  if (h < 0) return [];
+  const head = tab.rows[h].map((c) => clean(c).toLowerCase());
+  const col = (test: (s: string) => boolean) => head.findIndex(test);
+  const c = {
+    opened: col((s) => s === "opening date"),
+    title: col((s) => s === "job title"),
+    client: col((s) => s === "client"),
+    lob: col((s) => s === "lob"),
+    owner: col((s) => s.startsWith("assigned to")),
+    positions: col((s) => s.startsWith("# of positions")),
+    status: col((s) => s === "status"),
+    closed: col((s) => s === "closed date"),
+    internal: col((s) => s.startsWith("internal")),
+    submitted: col((s) => s === "submittals"),
+    inProcess: col((s) => s.startsWith("candidates in process")),
+    comment: col((s) => s === "comments"),
+  };
+  const out: Row[] = [];
+  for (const r of tab.rows.slice(h + 1)) {
+    if (clean(r[1]).toLowerCase() === "total") break;
+    const title = clean(r[c.title]);
+    const client = clean(r[c.client]);
+    if (!title && !client) continue;
+    out.push({
+      title,
+      client,
+      owner: clean(r[c.owner]),
+      lob: clean(r[c.lob]),
+      opened: isoDate(r[c.opened] ?? ""),
+      positions: Math.max(1, toInt(r[c.positions] ?? "1")),
+      status: canonStatus(r[c.status] ?? ""),
+      closed: isoDate(r[c.closed] ?? ""),
+      internal: toInt(r[c.internal] ?? ""),
+      submitted: toInt(r[c.submitted] ?? ""),
+      inProcess: toInt(r[c.inProcess] ?? ""),
+      comment: clean(r[c.comment]),
+    });
+  }
+  return out;
+}
+
+const tabOrder = (name: string) => {
+  const m = name.match(/^([A-Za-z]{3})\s+(\d{4})$/);
+  return m ? parseInt(m[2], 10) * 12 + MONTHS.indexOf(m[1].toLowerCase()) : -1;
+};
+
+export function buildRoles(tabsIn: Tab[]): { roles: Role[]; latestTab: string } {
+  const tabs = tabsIn.filter((t) => tabOrder(t.name) >= 0).sort((a, b) => tabOrder(a.name) - tabOrder(b.name));
+  const all: Role[] = [];
+  const baseOf = new Map<Role, string>();
+  const isFinal = (s: string) => FINAL_STATUSES.includes(s);
+
+  for (const tab of tabs) {
+    const rows = parseTab(tab);
+    const base = (r: Row) => `${normClient(r.client)}|${r.opened ?? ""}|${normTitle(r.title)}`;
+    const basesInTab = new Set(rows.map(base));
+    const claimed = new Set<Role>(); // roles already matched to a row of this tab
+    // The sheet's Closed Date is =today() until someone sets it: the most common value among non-Filled rows is that placeholder.
+    const counts = new Map<string, number>();
+    for (const r of rows) if (r.status !== "Filled" && r.closed) counts.set(r.closed, (counts.get(r.closed) ?? 0) + 1);
+    const placeholder = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    const year = parseInt(tab.name.slice(-4), 10) || YEAR;
+
+    for (const r of rows) {
+      const b = base(r);
+      // 1) Same client + opening date + title. Rows with the same title are separate roles (e.g. one Filled, one still Active).
+      const same = all.filter((x) => baseOf.get(x) === b && !claimed.has(x));
+      let role: Role | undefined = same.find((x) => !isFinal(x.status)) ?? same.find((x) => x.status === r.status);
+      // 2) A renamed role keeps client + opening date, but its old title is gone from this tab.
+      if (!role && r.opened) {
+        const cands = all.filter(
+          (x) => x.opened === r.opened && normClient(x.client) === normClient(r.client) && !basesInTab.has(baseOf.get(x) as string) && !claimed.has(x) && x.lastTab !== tab.name && !isFinal(x.status)
+        );
+        role = cands.find((x) => x.owner === r.owner && x.lob === r.lob) ?? (cands.length === 1 ? cands[0] : undefined);
+        if (role) baseOf.set(role, b);
+      }
+      if (!role) {
+        role = {
+          key: `${b}#${all.length}`, title: r.title, client: r.client, owner: r.owner, lob: r.lob, opened: r.opened, positions: r.positions, status: r.status,
+          internal: 0, submitted: 0, inProcess: 0, comment: "", firstTab: tab.name, lastTab: tab.name, startDate: null, daysToStart: null,
+          carried: !r.opened || r.opened < `${YEAR}-01-01`, dropped: false,
+        };
+        all.push(role);
+        baseOf.set(role, b);
+      }
+      claimed.add(role);
+      role.title = r.title;
+      role.client = r.client || role.client;
+      role.owner = r.owner || role.owner;
+      role.lob = r.lob || role.lob;
+      role.positions = r.positions;
+      role.status = r.status;
+      role.internal = r.internal;
+      role.submitted = r.submitted;
+      role.inProcess = r.inProcess;
+      role.comment = r.comment;
+      role.lastTab = tab.name;
+      if (r.status === "Filled") {
+        const fromSheet = r.closed && r.closed !== placeholder ? r.closed : null;
+        role.startDate = fromSheet ?? startFromComment(r.comment, year);
+      }
+    }
+  }
+
+  const latestTab = tabs[tabs.length - 1]?.name ?? "";
+  for (const r of all) {
+    r.dropped = r.lastTab !== latestTab && !isFinal(r.status);
+    r.daysToStart = r.status === "Filled" && r.startDate && r.opened ? Math.max(0, dayDiff(r.opened, r.startDate)) : null;
+  }
+  return { roles: all, latestTab };
+}
+
+// --- Numbers shown on the page ---------------------------------------------
+
+export type HiringData = {
+  latestTab: string;
+  loadedAt: string;
+  today: string;
+  totals: { roles: number; positions: number; filledRoles: number; hires: number; fillRate: number | null; opened2026: number; carried: number };
+  byStatus: { status: string; roles: number; positions: number }[];
+  open: { openRoles: number; openPositions: number; holdRoles: number; holdPositions: number; presalesRoles: number; submitted: number };
+  byClient: { client: string; open: number; hold: number; presales: number }[];
+  openRoles: Role[]; // Active, Pend Functional Spec and On Hold in the latest tab
+  filled: Role[]; // Filled roles with a known start date, newest start first
+  avgDaysToStart: number | null;
+  monthly: { month: string; hires: number }[];
+};
+
+export function summarize(roles: Role[], latestTab: string, today: string): HiringData {
+  const live = roles.filter((r) => !r.dropped);
+  const statusOf = (r: Role) => (r.dropped ? "Dropped" : r.status);
+  const order = ["Active", "Pend Functional Spec", "On Hold", "Pending SOW", "MSA sent", "Sales/In progress", "Filled", "Cancelled", "Lost", "Dropped"];
+  const seen = [...new Set(roles.map(statusOf))];
+  const byStatus = [...order.filter((s) => seen.includes(s)), ...seen.filter((s) => !order.includes(s))].map((status) => {
+    const rs = roles.filter((r) => statusOf(r) === status);
+    return { status, roles: rs.length, positions: rs.reduce((n, r) => n + r.positions, 0) };
+  });
+
+  const filled = roles.filter((r) => r.status === "Filled");
+  const lost = roles.filter((r) => r.status === "Cancelled" || r.status === "Lost");
+  const fillRate = filled.length + lost.length ? filled.length / (filled.length + lost.length) : null;
+
+  const nowRoles = live.filter((r) => r.lastTab === latestTab);
+  const openR = nowRoles.filter((r) => OPEN_STATUSES.includes(r.status));
+  const holdR = nowRoles.filter((r) => r.status === "On Hold");
+  const preR = nowRoles.filter((r) => PRESALES_STATUSES.includes(r.status));
+  const sum = (rs: Role[]) => rs.reduce((n, r) => n + r.positions, 0);
+
+  const clients = new Map<string, { client: string; open: number; hold: number; presales: number }>();
+  for (const r of [...openR, ...holdR, ...preR]) {
+    const k = normClient(r.client);
+    const e = clients.get(k) ?? { client: r.client, open: 0, hold: 0, presales: 0 };
+    if (OPEN_STATUSES.includes(r.status)) e.open += r.positions;
+    else if (r.status === "On Hold") e.hold += r.positions;
+    else e.presales += r.positions;
+    clients.set(k, e);
+  }
+
+  const timed = filled.filter((r) => r.daysToStart !== null);
+  const posW = timed.reduce((n, r) => n + r.positions, 0);
+  const avg = posW ? timed.reduce((n, r) => n + (r.daysToStart as number) * r.positions, 0) / posW : null;
+
+  const monthly = MONTHS.map((m, i) => ({
+    month: m[0].toUpperCase() + m.slice(1),
+    hires: filled.filter((r) => r.startDate?.startsWith(`${YEAR}-${String(i + 1).padStart(2, "0")}`)).reduce((n, r) => n + r.positions, 0),
+  }));
+  const lastMonth = Math.max(...monthly.map((m, i) => (m.hires ? i : -1)), parseInt(today.slice(5, 7), 10) - 1);
+
+  return {
+    latestTab,
+    loadedAt: new Date().toISOString(),
+    today,
+    totals: {
+      roles: roles.length,
+      positions: sum(roles),
+      filledRoles: filled.length,
+      hires: sum(filled),
+      fillRate,
+      opened2026: roles.filter((r) => !r.carried).length,
+      carried: roles.filter((r) => r.carried).length,
+    },
+    byStatus,
+    open: { openRoles: openR.length, openPositions: sum(openR), holdRoles: holdR.length, holdPositions: sum(holdR), presalesRoles: preR.length, submitted: [...openR, ...holdR].reduce((n, r) => n + r.submitted, 0) },
+    byClient: [...clients.values()].sort((a, b) => b.open + b.hold + b.presales - (a.open + a.hold + a.presales) || a.client.localeCompare(b.client)),
+    openRoles: [...openR, ...holdR].sort((a, b) => (OPEN_STATUSES.includes(a.status) ? 0 : 1) - (OPEN_STATUSES.includes(b.status) ? 0 : 1) || (a.opened ?? "9").localeCompare(b.opened ?? "9")),
+    filled: filled.filter((r) => r.startDate).sort((a, b) => (b.startDate as string).localeCompare(a.startDate as string)),
+    avgDaysToStart: avg,
+    monthly: monthly.slice(0, lastMonth + 1),
+  };
+}
+
+// --- Google Sheets access ----------------------------------------------------
+// A service account (read-only) signs a JWT with Node's crypto; no extra packages.
+
+type ServiceAccount = { client_email: string; private_key: string };
+
+function serviceAccount(): ServiceAccount {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new HiringSetupError("GOOGLE_SERVICE_ACCOUNT_JSON is missing in Vercel.");
+  try {
+    const text = raw.trim().startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
+    const j = JSON.parse(text);
+    if (!j.client_email || !j.private_key) throw new Error("no key");
+    return { client_email: j.client_email, private_key: String(j.private_key).replace(/\\n/g, "\n") };
+  } catch {
+    throw new HiringSetupError("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON. Paste the whole key file as one value.");
+  }
+}
+
+export class HiringSetupError extends Error {}
+
+const b64url = (v: string | Buffer) => Buffer.from(v).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+
+let tokenCache: { token: string; exp: number } | null = null;
+async function accessToken(): Promise<string> {
+  if (tokenCache && tokenCache.exp > Date.now() + 60_000) return tokenCache.token;
+  const sa = serviceAccount();
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const claims = b64url(JSON.stringify({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/spreadsheets.readonly", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 }));
+  const sig = b64url(createSign("RSA-SHA256").update(`${head}.${claims}`).sign(sa.private_key));
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: `${head}.${claims}.${sig}` }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new HiringSetupError(`Google refused the service account (${res.status}). Check the key in Vercel.`);
+  const j = await res.json();
+  tokenCache = { token: j.access_token, exp: Date.now() + (j.expires_in ?? 3600) * 1000 };
+  return tokenCache.token;
+}
+
+async function sheetsGet(path: string): Promise<any> {
+  const token = await accessToken();
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } });
+  if (res.status === 403 || res.status === 404)
+    throw new HiringSetupError("The service account can't open the sheet. Share it with the service account's email (Viewer).");
+  if (!res.ok) throw new Error(`Google Sheets responded ${res.status}`);
+  return res.json();
+}
+
+export async function loadHiring(today: string): Promise<HiringData> {
+  const id = process.env.HIRING_SHEET_ID;
+  if (!id) throw new HiringSetupError("HIRING_SHEET_ID is missing in Vercel.");
+  const meta = await sheetsGet(`${id}?fields=sheets.properties.title`);
+  const names: string[] = (meta.sheets ?? []).map((s: any) => s.properties.title).filter((n: string) => new RegExp(`^[A-Za-z]{3} ${YEAR}$`).test(n));
+  if (!names.length) throw new HiringSetupError(`No tabs named like "Nov ${YEAR}" in the sheet.`);
+  const ranges = names.map((n) => `ranges=${encodeURIComponent(`'${n}'!A1:P150`)}`).join("&");
+  const data = await sheetsGet(`${id}/values:batchGet?${ranges}&valueRenderOption=FORMATTED_VALUE`);
+  const tabs: Tab[] = (data.valueRanges ?? []).map((v: any, i: number) => ({ name: names[i], rows: v.values ?? [] }));
+  const { roles, latestTab } = buildRoles(tabs);
+  return summarize(roles, latestTab, today);
+}
