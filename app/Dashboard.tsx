@@ -188,7 +188,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
     new: (r) => r.h.engineers.some((e) => e.status === "New Hire" || e.status === "Hiring"),
     stale: (r) => r.ago !== null && r.ago > 30,
   };
-  const QUICK_LABEL: [Quick, string][] = [["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["pilot", "In pilot"], ["ending", "Pilots ending soon"], ["stale", "No recent contact"]];
+  const QUICK_LABEL: [Quick, string][] = [["all", "All clients"], ["risk", "What's at risk?"], ["attention", "Needs attention"], ["ending", "Pilots ending soon"]];
   const mapRows = useMemo(() => {
     const sev = { red: 0, yellow: 1, green: 2 } as Record<Light, number>;
     const needle = q.trim().toLowerCase();
@@ -516,7 +516,7 @@ function Charts({ rows, pilots, today, onOpen, onQuick }: { rows: ChartRow[]; pi
   const slices = [
     { key: "bad", label: "High Risk", color: "var(--bad)", n: rows.filter((r) => !r.pilot && r.h.light === "red").length, q: "risk" as const },
     { key: "warn", label: "Needs Attention", color: "var(--warn)", n: rows.filter((r) => !r.pilot && r.h.light === "yellow").length, q: "attention" as const },
-    { key: "pilot", label: "Pilot", color: "var(--cyan)", n: rows.filter((r) => r.pilot).length, q: "pilot" as const },
+    { key: "pilot", label: "Pilot", color: "var(--cyan)", n: rows.filter((r) => r.pilot).length, q: null },
     { key: "ok", label: "On track", color: "var(--ok)", n: rows.filter((r) => !r.pilot && r.h.light === "green").length, q: null },
   ];
   const total = slices.reduce((n, x) => n + x.n, 0);
