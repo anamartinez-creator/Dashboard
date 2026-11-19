@@ -467,3 +467,4 @@ h2.brief-title::before { display: none; }
 .g-tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border: 6px solid transparent; border-top-color: var(--ink); }
 .g-row:hover .g-tip, .g-row:focus-visible .g-tip { display: flex; }
 .g-row:hover .g-bar { filter: brightness(1.1); box-shadow: 0 0 0 3px rgba(41,171,224,.25); }
+.tile-comment { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; line-height: 1.45; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }

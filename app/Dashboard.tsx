@@ -208,7 +208,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
 
   const updated = new Date(loadedAt).toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" });
   const recentComments = clientRows
-    .filter((r) => r.m?.notes && r.ago !== null && r.ago <= 31)
+    .filter((r) => r.m?.notes)
     .sort((x, y) => (x.ago ?? 0) - (y.ago ?? 0));
 
   return (
@@ -293,6 +293,7 @@ export default function Dashboard({ owner, notes, engineers, sows, clients, load
                               <span className="tile-name">{r.h.name}</span>
                               <span className="tile-meta"><b>{n || "—"}</b> {n === 1 ? "person" : "people"}</span>
                               <span className="tile-sub">{sub}</span>
+                              {r.m?.notes && <span className="tile-comment">{r.m.notes.comment}</span>}
                             </button>
                           );
                         })}
