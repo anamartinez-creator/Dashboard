@@ -59,7 +59,7 @@ export default function Dashboard({ title = "Software Development", contacts = t
   const [selected, setSelected] = useState<string | null>(null);
 
   // Tabs: Overview (what needs action), Clients, People. The tab is kept in the URL hash.
-  type Tab = "overview" | "people";
+  type Tab = "overview" | "week" | "people";
   const [tab, setTabState] = useState<Tab>("overview");
   const setTab = (t: Tab) => {
     setTabState(t);
@@ -67,7 +67,7 @@ export default function Dashboard({ title = "Software Development", contacts = t
   };
   useEffect(() => {
     const h = window.location.hash.slice(1);
-    if (h === "people") setTabState(h);
+    if (h === "people" || (h === "week" && contacts && weekUpdates)) setTabState(h);
   }, []);
 
   // Summary cards jump to their tab and section (client cards also set the color filter)
@@ -242,7 +242,7 @@ export default function Dashboard({ title = "Software Development", contacts = t
 
       <nav className="tabs" role="tablist" aria-label="Dashboard sections">
         <div className="tabs-in">
-          {([["overview", "Overview"], ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
+          {([["overview", "Overview"], ...(contacts && weekUpdates ? [["week", "This Week"]] : []), ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
             <button type="button" key={t} role="tab" aria-selected={tab === t} className={`tab${tab === t ? " on" : ""}`} onClick={() => setTab(t)}>{label}</button>
           ))}
         </div>
@@ -251,24 +251,6 @@ export default function Dashboard({ title = "Software Development", contacts = t
       <main className="wrap" role="tabpanel">
         {tab === "overview" && (
           <>
-            {contacts && weekUpdates && weekStart && weekEnd && (
-              <section className="week" id="sec-week">
-                <h2>This week&apos;s updates <span className="week-range">{fmtDate(weekStart)} – {fmtDate(weekEnd)}</span></h2>
-                {weekUpdates.length === 0 ? (
-                  <p className="week-empty">No new client comments in Notion yet this week.</p>
-                ) : (
-                  <ul className="week-list">
-                    {weekUpdates.map((u, i) => (
-                      <li key={`${u.clientId}-${u.date}-${i}`}>
-                        <span className="week-date">{fmtDate(u.date)}</span>
-                        <a className="week-client" href={u.url} target="_blank" rel="noreferrer">{u.client}</a>
-                        <p>{u.comment}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
             <section className="exec">
               <div className="ask">
                 <span className="ask-label">Quick questions</span>
@@ -411,6 +393,24 @@ export default function Dashboard({ title = "Software Development", contacts = t
           </>
         )}
 
+        {tab === "week" && weekUpdates && weekStart && weekEnd && (
+              <section className="week" id="sec-week">
+                <h2>This week&apos;s updates <span className="week-range">{fmtDate(weekStart)} – {fmtDate(weekEnd)}</span></h2>
+                {weekUpdates.length === 0 ? (
+                  <p className="week-empty">No new client comments in Notion yet this week.</p>
+                ) : (
+                  <ul className="week-list">
+                    {weekUpdates.map((u, i) => (
+                      <li key={`${u.clientId}-${u.date}-${i}`}>
+                        <span className="week-date">{fmtDate(u.date)}</span>
+                        <a className="week-client" href={u.url} target="_blank" rel="noreferrer">{u.client}</a>
+                        <p>{u.comment}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+        )}
         {tab === "people" && (
           <>
       <section id="sec-team">
