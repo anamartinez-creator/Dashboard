@@ -129,7 +129,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Click a client to see its roles with opening and closing dates.</p></div>
+          <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Click a client to see its roles with opening and closing dates. A role without a closing date keeps counting days as open until the sheet is edited.</p></div>
           <div className="ta-grid">
             {data.clientHistory.map((g) => (
               <section className="chart-card" key={g.group}>
@@ -148,7 +148,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                       <span className="ta-val">{c.total}</span>
                     </summary>
                     <table className="ta-table ta-cl-table">
-                      <thead><tr><th>Role</th><th>Status</th><th className="c">Positions</th><th>Opened</th><th>Closed</th></tr></thead>
+                      <thead><tr><th>Role</th><th>Status</th><th className="c">Positions</th><th>Opened</th><th>Closed</th><th className="c">Days</th></tr></thead>
                       <tbody>
                         {c.roles.map((r, i) => (
                           <tr key={i}>
@@ -157,6 +157,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                             <td className="c">{r.positions}</td>
                             <td>{r.opened ? fmtDate(r.opened) : "—"}</td>
                             <td>{r.closed ? fmtDate(r.closed) : "—"}</td>
+                            <td className="c" title={r.counting ? "No closing date recorded: still counting until the sheet is edited" : undefined}>{r.days === null ? "—" : `${r.days}d`}{r.counting && r.days !== null ? <small className="ta-count"> counting</small> : null}</td>
                           </tr>
                         ))}
                       </tbody>

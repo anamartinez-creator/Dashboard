@@ -213,7 +213,7 @@ export type HiringData = {
   filled: Role[]; // Filled roles with a known start date, newest start first
   avgDaysToStart: number | null;
   monthly: { month: string; hires: number }[];
-  clientHistory: { group: string; clients: { client: string; total: number; filled: number; open: number; cancelled: number; lost: number; dropped: number; roles: { title: string; status: string; positions: number; opened: string | null; closed: string | null }[] }[] }[]; // positions opened since January, per line of business and client
+  clientHistory: { group: string; clients: { client: string; total: number; filled: number; open: number; cancelled: number; lost: number; dropped: number; roles: { title: string; status: string; positions: number; opened: string | null; closed: string | null; days: number | null; counting: boolean }[] }[] }[]; // positions opened since January, per line of business and client
   hires: Hire[] | null; // from the Bonuses sheet when it is shared with the service account, else null
 };
 
@@ -257,7 +257,7 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
   const hired = allRoles.filter((r) => r.status === "Filled" && (!r.startDate || r.startDate >= `${YEAR}-01-01`));
   // The LOB column is typed by hand ("Engineer", "Engineerring", "Engineering"), so group by what it starts with
 
-  type Hist = { client: string; total: number; filled: number; open: number; cancelled: number; lost: number; dropped: number; roles: { title: string; status: string; positions: number; opened: string | null; closed: string | null }[] };
+  type Hist = { client: string; total: number; filled: number; open: number; cancelled: number; lost: number; dropped: number; roles: { title: string; status: string; positions: number; opened: string | null; closed: string | null; days: number | null; counting: boolean }[] };
   const hist = new Map<string, Hist[]>();
   for (const r of roles) {
     const g = lobGroup(r.lob);
@@ -266,7 +266,10 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
     if (!e) { e = { client: r.client, total: 0, filled: 0, open: 0, cancelled: 0, lost: 0, dropped: 0, roles: [] }; list.push(e); }
     e.total += r.positions;
     // Closed date: the hire date of a Filled role, or the date a Cancelled or Lost role was closed when someone recorded it.
-    e.roles.push({ title: r.title, status: r.dropped ? "Dropped" : r.status, positions: r.positions, opened: r.opened, closed: (r.status === "Filled" || r.status === "Cancelled" || r.status === "Lost") && !r.dropped ? r.startDate : null });
+    const closed = (r.status === "Filled" || r.status === "Cancelled" || r.status === "Lost") && !r.dropped ? r.startDate : null;
+    // A role with no closing date recorded keeps counting days up to today until someone edits the sheet
+    const days = r.opened ? Math.max(0, dayDiff(r.opened, closed ?? today)) : null;
+    e.roles.push({ title: r.title, status: r.dropped ? "Dropped" : r.status, positions: r.positions, opened: r.opened, closed, days, counting: !closed });
     if (r.dropped) e.dropped += r.positions;
     else if (r.status === "Cancelled") e.cancelled += r.positions;
     else if (r.status === "Lost") e.lost += r.positions;

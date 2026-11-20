@@ -677,3 +677,5 @@ h2.brief-title::before { display: none; }
 .ta-cl-table { margin: 6px 0 12px 14px; width: calc(100% - 14px); }
 .ta-cl-table th, .ta-cl-table td { padding: 6px 8px; }
 .ta-cl-table td:nth-child(n+4) { white-space: nowrap; }
+.ta-count { display: inline; color: var(--warn-text); font-weight: 600; font-size: 11px; }
+.ta-cl-table td:nth-child(6) { white-space: nowrap; }
