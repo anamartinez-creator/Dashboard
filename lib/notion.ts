@@ -432,7 +432,12 @@ export async function loadCustomerSuccess() {
 import { MANUAL_STARTS } from "./manual-starts";
 export type PendingStart = { name: string; client: string; role: string; startDate: string; daysUntil: number };
 export async function loadPendingStarts(today: string): Promise<PendingStart[]> {
-  const pages = await queryAll(DATA_SOURCES.engineers);
+  const [pages, csPages] = await Promise.all([queryAll(DATA_SOURCES.engineers), queryAll(DATA_SOURCES.csTeams).catch(() => [] as NotionPage[])]);
+  // Customer Success list ("Clients"): same idea, its own Start Date column
+  const fromCs = csPages
+    .map((p) => ({ name: text(prop(p, "Name ")), client: text(prop(p, "Client")), role: text(prop(p, "Role")), status: text(prop(p, "Status")), startDate: date(prop(p, "Start Date")) }))
+    .filter((x) => x.name && x.startDate && x.startDate > today && x.status !== "Termination" && x.status !== "Terminated")
+    .map((x) => ({ name: x.name.trim(), client: x.client || "—", role: x.role || "—", startDate: x.startDate as string, daysUntil: daysBetween(today, x.startDate as string) }));
   const fromNotion = mapEngineers(pages, today)
     .filter((e) => e.startDate && e.startDate > today && e.status !== "Terminated")
     .map((e) => ({ name: e.name, client: e.clients.join(", ") || "—", role: e.role || "—", startDate: e.startDate as string, daysUntil: daysBetween(today, e.startDate as string) }));
@@ -440,6 +445,6 @@ export async function loadPendingStarts(today: string): Promise<PendingStart[]> 
   const first = (n: string) => n.trim().toLowerCase().split(/\s+/)[0];
   const manual = MANUAL_STARTS.filter((m) => m.startDate > today && !fromNotion.some((n) => first(n.name) === first(m.name) && sameClient(n.client, m.client)))
     .map((m) => ({ ...m, daysUntil: daysBetween(today, m.startDate) }));
-  return [...fromNotion, ...manual]
+  return [...fromNotion, ...fromCs.filter((c) => !fromNotion.some((n) => first(n.name) === first(c.name) && sameClient(n.client, c.client))), ...manual]
     .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.client.localeCompare(b.client));
 }
