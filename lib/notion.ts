@@ -221,8 +221,30 @@ async function notionGet(path: string, revalidate = 300): Promise<any | null> {
 const plain = (cell: any[] | undefined): string => (cell ?? []).map((t: any) => t.plain_text).join("");
 const cellDate = (cell: any[] | undefined): string | null => {
   const m = (cell ?? []).find((t: any) => t.type === "mention" && t.mention?.type === "date");
-  return m?.mention?.date?.start?.slice(0, 10) ?? plain(cell).match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? null;
+  return m?.mention?.date?.start?.slice(0, 10) ?? plain(cell).match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? typedDate(plain(cell));
 };
+
+// Dates typed as plain text: "11/20", "6/10/2026", "Apr 13", "13 Apr". With no year, the most recent
+// year that is not in the future (a few days of tolerance) is used.
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+function typedDate(raw: string): string | null {
+  const t = raw.trim().toLowerCase().replace(/[,.]/g, " ").replace(/\s+/g, " ");
+  let mo = 0, day = 0, yr = 0, m: RegExpMatchArray | null;
+  if ((m = t.match(/^(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/))) { mo = +m[1]; day = +m[2]; yr = m[3] ? +m[3] : 0; }
+  else if ((m = t.match(/^([a-z]{3})[a-z]* (\d{1,2})(?: (\d{4}))?\b/)) && MONTHS.includes(m[1])) { mo = MONTHS.indexOf(m[1]) + 1; day = +m[2]; yr = m[3] ? +m[3] : 0; }
+  else if ((m = t.match(/^(\d{1,2}) ([a-z]{3})[a-z]*(?: (\d{4}))?\b/)) && MONTHS.includes(m[2])) { mo = MONTHS.indexOf(m[2]) + 1; day = +m[1]; yr = m[3] ? +m[3] : 0; }
+  else return null;
+  if (mo < 1 || mo > 12 || day < 1 || day > 31) return null;
+  if (yr && yr < 100) yr += 2000;
+  const today = todayIso();
+  if (!yr) {
+    yr = +today.slice(0, 4);
+    const iso = (y: number) => `${y}-${String(mo).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const limit = new Date(new Date(today + "T00:00:00Z").getTime() + 7 * 86400000).toISOString().slice(0, 10);
+    if (iso(yr) > limit) yr -= 1;
+  }
+  return `${yr}-${String(mo).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
 
 async function fetchLatestNote(pageId: string): Promise<LatestNote | null> {
   const blocks = await notionGet(`blocks/${pageId}/children?page_size=100`);
