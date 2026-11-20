@@ -10,6 +10,7 @@ const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const STALE_DAYS = 30;
+const STATUS_SHORT: Record<string, string> = { "Pend Functional Spec": "Pending spec", "Sales/In progress": "In sales" };
 const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal assessment", "Service Delivery Manager Interview": "SDM interview", "Preparing Puzzle Profile": "Profile prep", "Ready to Submit": "Ready to submit", "Submitted to the client": "Submitted", "Client initial Interview": "Client interview", "Client Assessment": "Client assessment", "2nd Client Interview": "2nd interview", "Waiting for Final Feedback": "Final feedback", "Offer": "Offer" };
 
 export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
@@ -134,8 +135,8 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                 <table className={`ta-table${ashby ? " ta-active-table" : ""}`}>
                   {ashby && (
                     <colgroup>
-                      <col style={{ width: "18%" }} /><col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "4%" }} /><col style={{ width: "8%" }} />
-                      {STAGES.map((n) => <col key={n} style={{ width: "5.5%" }} />)}
+                      <col style={{ width: "17%" }} /><col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "4%" }} /><col style={{ width: "11%" }} />
+                      {STAGES.map((n) => <col key={n} style={{ width: "5.3%" }} />)}
                     </colgroup>
                   )}
                   <thead>
@@ -160,7 +161,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                         <td>{r.client}</td>
                         <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
                         <td className="c">{r.positions}</td>
-                        <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
+                        <td><span className={`pill ${tone(r.status)}`} title={r.status}>{STATUS_SHORT[r.status] ?? r.status}</span></td>
                         {ashby ? (() => {
                           const m = ashbyFor.get(r.key);
                           if (!m) return <td className="c gl ta-none" colSpan={STAGES.length} title="No job with this title in Ashby">Not in Ashby</td>;
