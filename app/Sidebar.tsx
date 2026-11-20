@@ -33,7 +33,7 @@ export default function Sidebar() {
     <aside className="side">
       <div className="side-brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/puzzle-logo-white.png" alt="Puzzle" width={178} height={39} />
+        <img src="/puzzle-logo-white.png" alt="Puzzle" width={200} height={46} />
       </div>
       <p className="side-label">Operations</p>
       <nav className="side-nav" aria-label="Business units">
