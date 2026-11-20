@@ -1,5 +1,5 @@
 import type { HiringData, Role } from "@/lib/hiring";
-import { OPEN_STATUSES } from "@/lib/hiring";
+import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
 
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
@@ -12,6 +12,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
   const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > STALE_DAYS);
   const onHold = openRoles.filter((r) => r.status === "On Hold");
+  const active = openRoles.filter((r) => OPEN_STATUSES.includes(r.status));
   const best = monthly.reduce((a, m) => (m.hires > a.hires ? m : a), { month: "", hires: 0 });
   const agingPositions = aging.reduce((n, r) => n + r.positions, 0);
 
@@ -80,6 +81,37 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         )}
 
         <div className="ta-block">
+          <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are.</p></div>
+          <section className="chart-card">
+            {active.length === 0 && <p className="ta-note">No active roles right now.</p>}
+            {active.length > 0 && (
+              <div className="ta-scroll">
+                <table className="ta-table">
+                  <thead>
+                    <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></tr>
+                  </thead>
+                  <tbody>
+                    {active.map((r) => (
+                      <tr key={r.key}>
+                        <td><b>{r.title}</b></td>
+                        <td>{r.client}</td>
+                        <td>{lobGroup(r.lob)}</td>
+                        <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
+                        <td className="c">{r.positions}</td>
+                        <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
+                        <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
+                        <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
+                        <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="ta-block">
           <div className="ta-sec"><h2>Hiring momentum</h2><p>People hired each month this year.</p></div>
           <section className="chart-card">
             <h3>Hires by month <span className="chart-total">{totals.hires} in total</span></h3>
@@ -137,30 +169,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Detail</h2><p>Every open role and where its candidates are.</p></div>
-          <details className="chart-card ta-details">
-            <summary>Open roles ({openRoles.length})</summary>
-            <div className="ta-scroll">
-              <table className="ta-table">
-                <thead>
-                  <tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></tr>
-                </thead>
-                <tbody>
-                  {openRoles.map((r) => (
-                    <tr key={r.key}>
-                      <td><b>{r.title}</b></td>
-                      <td>{r.client}</td>
-                      <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
-                      <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
-                      <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
-                      <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
-                      <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
+          <div className="ta-sec"><h2>Detail</h2><p>The full list of hires behind the numbers above.</p></div>
           {data.hires && (
             <details className="chart-card ta-details">
               <summary>Hires since January ({data.hires.length})</summary>

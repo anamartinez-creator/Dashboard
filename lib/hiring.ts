@@ -214,6 +214,8 @@ export type HiringData = {
   hires: Hire[] | null; // from the Bonuses sheet when it is shared with the service account, else null
 };
 
+export const lobGroup = (lob: string): string => (/^engineer/i.test(lob.trim()) ? "Engineering" : /^customer/i.test(lob.trim()) ? "Customer Success" : "Staff & other");
+
 export function summarize(allRoles: Role[], latestTab: string, today: string, bonusHires: Hire[] | null = null): HiringData {
   // Outcomes and fill rate count only roles opened from January of this year. Roles carried over from the year
   // before still show up if they are open right now, and their hires still count as hires.
@@ -251,7 +253,7 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
   // Hires count everyone hired from January this year, including roles opened the year before
   const hired = allRoles.filter((r) => r.status === "Filled" && (!r.startDate || r.startDate >= `${YEAR}-01-01`));
   // The LOB column is typed by hand ("Engineer", "Engineerring", "Engineering"), so group by what it starts with
-  const lobGroup = (lob: string) => (/^engineer/i.test(lob.trim()) ? "Engineering" : /^customer/i.test(lob.trim()) ? "Customer Success" : "Staff & other");
+
   type Hist = { client: string; total: number; filled: number; open: number; closed: number };
   const hist = new Map<string, Hist[]>();
   for (const r of roles) {
