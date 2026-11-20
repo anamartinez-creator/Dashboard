@@ -47,7 +47,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
   const openedWk = allRoles.filter((r) => inWeek(r.opened));
   const closedWk = allRoles.filter((r) => inWeek(r.closed) && ["Filled", "Cancelled", "Lost"].includes(r.status));
   const hiresWk = (data.hires ?? []).filter((h) => inWeek(h.date));
-  const startingSoon = (pending ?? []).filter((h) => h.startDate <= addD(today, 7));
+  const startingSoon = pending ?? [];
   const attentionList = [...aging, ...onHold, ...noSubmit].slice(0, 4);
   const offers = ashby?.stages.Offer ?? 0;
   const summary = [
@@ -166,24 +166,6 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
         }
         tabs={[
           { id: "roles", label: "Active roles & pipeline", node: (<>
-        {pending && pending.length > 0 && (
-          <section className="ta-pending">
-            <h2>Hires pending to start <span className="week-range">{pending.length} {pending.length === 1 ? "person" : "people"}</span></h2>
-            <table className="ta-pending-table">
-              <thead><tr><th>Client</th><th>Role</th><th>Start date</th><th>Starts in</th></tr></thead>
-              <tbody>
-                {pending.map((h, i) => (
-                  <tr key={i}>
-                    <td>{h.client}</td>
-                    <td>{h.role}</td>
-                    <td>{fmtDate(h.startDate)}</td>
-                    <td>{h.daysUntil === 1 ? "Tomorrow" : `${h.daysUntil} days`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        )}
         <div className="ta-block" id="roles">
           <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are in the pipeline.</p></div>
           <section className="chart-card">
