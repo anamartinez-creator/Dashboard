@@ -409,16 +409,18 @@ export async function loadCustomerSuccess() {
   // Every client comment of this week (Monday to Sunday), 4 clients at a time for Notion's rate limit
   const today = todayIso();
   const week = weekRange(today);
+  const clientNotes: Record<string, ClientNote> = {};
   const weekUpdates: WeekUpdate[] = [];
   for (let i = 0; i < clients.length; i += 4) {
     await Promise.all(
       clients.slice(i, i + 4).map(async (cl) => {
         const rows = await fetchClientRows(cl.id);
+        if (rows[0]) clientNotes[cl.id] = rows[0];
         for (const r of rows) if (r.date >= week.start && r.date <= week.end) weekUpdates.push({ clientId: cl.id, client: cl.client, url: cl.url, date: r.date, comment: r.comment });
       })
     );
   }
   weekUpdates.sort((a, b) => b.date.localeCompare(a.date) || a.client.localeCompare(b.client));
 
-  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, clientNotes: {} as Record<string, ClientNote>, weekUpdates, weekStart: week.start, weekEnd: week.end, loadedAt: new Date().toISOString(), today };
+  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, clientNotes, weekUpdates, weekStart: week.start, weekEnd: week.end, loadedAt: new Date().toISOString(), today };
 }

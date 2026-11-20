@@ -10,7 +10,7 @@ export const revalidate = 60;
 export default async function Page() {
   try {
     const data = await loadCustomerSuccess();
-    return <Dashboard {...data} title="Customer Success" contacts={false} />;
+    return <Dashboard {...data} title="Customer Success" />;
   } catch (err) {
     // Temporary Notion hiccup: throw so Next keeps serving the last good copy of the page
     if (shouldRethrow(err)) throw err;
