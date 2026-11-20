@@ -360,7 +360,7 @@ async function accessToken(): Promise<string> {
 
 async function sheetsGet(path: string): Promise<any> {
   const token = await accessToken();
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 300 } });
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${path}`, { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 60, tags: ["hiring"] } });
   if (res.status === 403 || res.status === 404)
     throw new HiringSetupError("The service account can't open the sheet. Share it with the service account's email (Viewer).");
   if (!res.ok) throw new Error(`Google Sheets responded ${res.status}`);

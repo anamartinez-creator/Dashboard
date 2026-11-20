@@ -7,19 +7,19 @@ const EVERY_MS = 60_000;
 
 // Keeps the dashboard in sync with Notion: re-reads the data every minute while
 // the tab is visible, when the tab comes back into focus, and on demand.
-export default function AutoRefresh() {
+export default function AutoRefresh({ scope = "/" }: { scope?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async (force: boolean) => {
     setBusy(true);
     try {
-      if (force) await fetch("/api/refresh", { method: "POST" });
+      if (force) await fetch("/api/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope }) });
       router.refresh();
     } finally {
       setTimeout(() => setBusy(false), 800);
     }
-  }, [router]);
+  }, [router, scope]);
 
   useEffect(() => {
     const tick = () => {

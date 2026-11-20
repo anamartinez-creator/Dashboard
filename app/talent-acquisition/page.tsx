@@ -6,8 +6,8 @@ import UnitPlaceholder from "../UnitPlaceholder";
 
 export const metadata: Metadata = { title: "Talent Acquisition" };
 
-// Read the sheet again at most every 5 minutes
-export const revalidate = 300;
+// Read the sheets again at most every minute
+export const revalidate = 60;
 
 export default async function Page() {
   try {

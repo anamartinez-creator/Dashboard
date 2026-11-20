@@ -1,3 +1,4 @@
+import AutoRefresh from "./AutoRefresh";
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
 
@@ -285,6 +286,11 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <p className="ta-note">Billing rates, salaries, names and bonus amounts are never loaded into this page.</p>
+
+        <footer className="foot">
+          Updated {new Date().toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
+          {" · "}refreshes automatically every minute · <AutoRefresh scope="/talent-acquisition" />
+        </footer>
       </main>
     </>
   );
