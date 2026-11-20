@@ -9,6 +9,7 @@ const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const STALE_DAYS = 30;
+const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal", "Service Delivery Manager Interview": "SDM", "Preparing Puzzle Profile": "Profile", "Ready to Submit": "Ready", "Submitted to the client": "Sent", "Client initial Interview": "Client 1", "Client Assessment": "Assess.", "2nd Client Interview": "Client 2", "Waiting for Final Feedback": "Final", "Offer": "Offer" };
 
 export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
   const { totals, open, openRoles, monthly, today } = data;
@@ -135,7 +136,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
             {active.length === 0 && <p className="ta-note">No active roles right now.</p>}
             {active.length > 0 && (
               <div className="ta-scroll">
-                <table className={`ta-table${ashby ? " ta-stage-table" : ""}`}>
+                <table className={`ta-table${ashby ? " ta-active-table" : ""}`}>
                   <thead>
                     <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th>
                       {ashby
@@ -182,6 +183,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                     ))}
                   </tbody>
                 </table>
+                {ashby && <p className="ta-note">Stages (hover a heading for its full name): Internal = Puzzle Internal Assessment · SDM = Service Delivery Manager Interview · Profile = Preparing Puzzle Profile · Ready = Ready to Submit · Sent = Submitted to the client · Client 1 = Client initial Interview · Assess. = Client Assessment · Client 2 = 2nd Client Interview · Final = Waiting for Final Feedback.</p>}
               </div>
             )}
           </section>

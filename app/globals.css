@@ -718,3 +718,17 @@ h2.brief-title::before { display: none; }
 .ta-stage-table th { font-size: 10px; white-space: normal; min-width: 70px; }
 
 .ta-total-row td { border-top: 2px solid var(--blue); background: var(--tint); }
+
+.ta-active-table { table-layout: fixed; width: 100%; font-size: 12px; }
+.ta-active-table th, .ta-active-table td { padding: 6px 3px; overflow-wrap: anywhere; }
+.ta-active-table th { font-size: 10px; letter-spacing: .02em; }
+.ta-active-table th:nth-child(1) { width: 17%; }
+.ta-active-table th:nth-child(2) { width: 11%; }
+.ta-active-table th:nth-child(3) { width: 8%; }
+.ta-active-table th:nth-child(4) { width: 6%; }
+.ta-active-table th:nth-child(5) { width: 5%; }
+.ta-active-table th:nth-child(6) { width: 9%; }
+.ta-active-table th:nth-child(n+7) { width: 4.4%; }
+.ta-active-table .pill { font-size: 10.5px; padding: 2px 6px; }
+.ta-active-table .ta-n { min-width: 0; }
+@media (max-width: 900px) { .ta-active-table { table-layout: auto; min-width: 820px; } }
