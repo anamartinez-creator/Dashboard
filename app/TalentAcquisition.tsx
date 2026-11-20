@@ -55,13 +55,15 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
       ? "No roles are being hired for right now."
       : `${plural(active.length, "role is", "roles are")} being hired for right now (${plural(activePositions, "opening", "openings")}).`,
   ];
-  const weekStats: [number | string, string][] = [
-    [hiresWk.length, "Hires this week"],
-    [openedWk.length, "Roles opened"],
-    [closedWk.length, "Roles closed"],
-    [pending ? pending.length : "—", "Pending to start"],
-    [ashby ? offers : "—", "At offer"],
-    [attention, "Need attention"],
+  const prevStart = addD(wkStart, -7);
+  const prevEnd = addD(wkStart, -1);
+  const hiresPrev = (data.hires ?? []).filter((h) => h.date >= prevStart && h.date <= prevEnd).length;
+  const diff = hiresWk.length - hiresPrev;
+  const weekCards: { n: number | string; label: string; note: string }[] = [
+    { n: hiresWk.length, label: "Hires this week", note: data.hires ? (diff === 0 ? "same as last week" : `${diff > 0 ? "+" : ""}${diff} vs last week`) : "" },
+    { n: openedWk.length, label: "Roles opened", note: `${closedWk.length} closed` },
+    { n: pending ? pending.length : "—", label: "Pending to start", note: pending && pending[0] ? `next: ${fmtDate(pending[0].startDate).replace(/, \d{4}$/, "")}` : "" },
+    { n: attention, label: "Need attention", note: attention ? "see Needs attention tab" : "all good" },
   ];
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
@@ -124,36 +126,35 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
           </div>
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
-              <p className="brief-eyebrow">This week</p>
+              <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
               <h2 className="brief-title">{summary[0]}</h2>
-              <div className="ta-wk-stats">
-                {weekStats.map(([n, l]) => (<div key={l}><b>{n}</b><span>{l}</span></div>))}
-              </div>
-              <div className="ta-wk-cols">
-                <div>
-                  <h3>This week <em>{fmtDate(wkStart)} – {fmtDate(wkEnd)}</em></h3>
-                  <ul>
-                    {hiresWk.map((h, i) => (<li key={`h${i}`}>Hired: {h.role} · {h.client}</li>))}
-                    {openedWk.map((r, i) => (<li key={`o${i}`}>Opened: {r.title} · {r.client}</li>))}
-                    {closedWk.map((r, i) => (<li key={`c${i}`}>{r.status}: {r.title} · {r.client}</li>))}
-                    {hiresWk.length + openedWk.length + closedWk.length === 0 && <li>Nothing new yet this week.</li>}
-                  </ul>
-                </div>
-                <div>
-                  <h3>Coming up</h3>
-                  <ul>
-                    {startingSoon.map((h, i) => (<li key={`s${i}`}>Starts {fmtDate(h.startDate)}: {h.role} · {h.client}</li>))}
-                    {ashby && offers > 0 && <li>{plural(offers, "candidate is", "candidates are")} at offer</li>}
-                    {attentionList.map((r) => (<li key={r.key}>Needs attention: {r.title} · {r.client} ({reason(r)})</li>))}
-                    {attention > attentionList.length && <li>+{attention - attentionList.length} more in the Needs attention tab</li>}
-                    {startingSoon.length === 0 && offers === 0 && attention === 0 && <li>Nothing pending.</li>}
-                  </ul>
-                </div>
+              <div className="ta-cards">
+                {weekCards.map((c) => (<div key={c.label} className="ta-card"><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>))}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <section className="ta-wk">
+        <div className="ta-wk-panel">
+          <h3>This week</h3>
+          <p className="ta-wk-sub">{fmtDate(wkStart)} – {fmtDate(wkEnd)}</p>
+          {hiresWk.map((h, i) => (<div key={`h${i}`} className="ta-wk-row"><span className="ta-tag t-h">Hired</span><span className="m">{h.role}<i>{h.client}</i></span><span className="d">{fmtDate(h.date).replace(/, \d{4}$/, "")}</span></div>))}
+          {openedWk.map((r, i) => (<div key={`o${i}`} className="ta-wk-row"><span className="ta-tag t-o">Opened</span><span className="m">{r.title}<i>{r.client}</i></span><span className="d">{r.opened ? fmtDate(r.opened).replace(/, \d{4}$/, "") : ""}</span></div>))}
+          {closedWk.map((r, i) => (<div key={`c${i}`} className="ta-wk-row"><span className="ta-tag t-c">{r.status === "Filled" ? "Filled" : r.status}</span><span className="m">{r.title}<i>{r.client}</i></span><span className="d">{r.closed ? fmtDate(r.closed).replace(/, \d{4}$/, "") : ""}</span></div>))}
+          {hiresWk.length + openedWk.length + closedWk.length === 0 && <p className="ta-wk-empty">Nothing new yet this week.</p>}
+        </div>
+        <div className="ta-wk-panel">
+          <h3>Coming up</h3>
+          <p className="ta-wk-sub">Starts, offers and roles that need a push</p>
+          {startingSoon.map((h, i) => (<div key={`s${i}`} className="ta-wk-row"><span className="ta-tag t-s">Starts</span><span className="m">{h.role}<i>{h.client}</i></span><span className="d">{fmtDate(h.startDate).replace(/, \d{4}$/, "")}</span></div>))}
+          {ashby && offers > 0 && <div className="ta-wk-row"><span className="ta-tag t-o">Offer</span><span className="m">{plural(offers, "candidate is", "candidates are")} at offer<i>Waiting for a decision</i></span><span className="d" /></div>}
+          {attentionList.map((r) => (<div key={r.key} className="ta-wk-row"><span className="ta-tag t-a">Attention</span><span className="m">{r.title}<i>{r.client} · {reason(r)}</i></span><span className="d" /></div>))}
+          {attention > attentionList.length && <p className="ta-wk-more">+{attention - attentionList.length} more in the Needs attention tab</p>}
+          {startingSoon.length === 0 && offers === 0 && attention === 0 && <p className="ta-wk-empty">Nothing pending.</p>}
+        </div>
+      </section>
 
       <TaTabs
         footer={

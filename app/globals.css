@@ -792,11 +792,20 @@ html { scroll-behavior: smooth; }
 .ta-pending-table td { padding: 10px 12px; border-bottom: 1px solid var(--line, rgba(255,255,255,.06)); font-size: 14px; }
 
 /* This week summary */
-.ta-wk-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 14px 0 18px; }
-.ta-wk-stats div { background: rgba(255,255,255,.14); border-radius: 12px; padding: 12px 14px; }
-.ta-wk-stats b { display: block; font-size: 26px; line-height: 1.1; }
-.ta-wk-stats span { font-size: 12px; opacity: .85; }
-.ta-wk-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
-.ta-wk-cols h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 8px; opacity: .9; }
-.ta-wk-cols h3 em { font-style: normal; text-transform: none; letter-spacing: 0; opacity: .75; margin-left: 8px; }
-.ta-wk-cols ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.55; }
+.ta-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin-top: 22px; }
+.ta-card { background: rgba(255,255,255,.14); border-radius: 14px; padding: 20px 22px; }
+.ta-card b { display: block; font-size: 38px; line-height: 1; }
+.ta-card span { display: block; margin-top: 8px; font-size: 13px; opacity: .9; }
+.ta-card small { display: block; margin-top: 4px; font-size: 12px; opacity: .7; }
+.ta-wk { max-width: 1680px; margin: 0 auto; padding: 28px 24px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 28px; }
+.ta-wk-panel { background: #fff; border-radius: 14px; padding: 24px 26px; box-shadow: 0 1px 3px rgba(0,40,80,.08); }
+.ta-wk-panel h3 { margin: 0 0 4px; font-size: 16px; }
+.ta-wk-sub { margin: 0 0 14px; font-size: 12px; color: #6b7a8c; }
+.ta-wk-row { display: flex; gap: 14px; align-items: baseline; padding: 11px 0; border-top: 1px solid #edf1f5; font-size: 14px; }
+.ta-wk-row .m { flex: 1; }
+.ta-wk-row .m i { display: block; font-style: normal; color: #6b7a8c; font-size: 12px; margin-top: 2px; }
+.ta-wk-row .d { font-size: 12px; color: #6b7a8c; white-space: nowrap; }
+.ta-tag { flex: 0 0 78px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 999px; padding: 3px 0; text-align: center; }
+.t-h { background: #e3f4e6; color: #1f6b33; } .t-o { background: #e1effa; color: #0b5a8a; } .t-c { background: #fdeaea; color: #a02828; } .t-s { background: #e7e9fb; color: #3a3fa0; } .t-a { background: #fff2d6; color: #8a5e00; }
+.ta-wk-more { margin: 12px 0 0; font-size: 13px; color: #00406c; font-weight: 600; }
+.ta-wk-empty { margin: 0; font-size: 14px; color: #6b7a8c; }
