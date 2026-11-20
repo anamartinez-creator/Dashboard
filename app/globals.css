@@ -783,3 +783,10 @@ html { scroll-behavior: smooth; }
 .week-client:hover { text-decoration: underline; }
 .week-list p { margin: 0; font-size: 14px; line-height: 1.5; }
 @media (max-width: 800px) { .week-list li { grid-template-columns: 1fr; } }
+
+/* Hires pending to start */
+.ta-pending { margin: 0 0 22px; }
+.ta-pending h2 { font-size: 16px; margin: 0 0 10px; }
+.ta-pending-table { width: 100%; border-collapse: collapse; }
+.ta-pending-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted, #8b93a7); padding: 8px 12px; border-bottom: 1px solid var(--line, rgba(255,255,255,.1)); }
+.ta-pending-table td { padding: 10px 12px; border-bottom: 1px solid var(--line, rgba(255,255,255,.06)); font-size: 14px; }

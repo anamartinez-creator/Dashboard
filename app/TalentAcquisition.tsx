@@ -2,6 +2,7 @@ import AutoRefresh from "./AutoRefresh";
 import TaTabs from "./TaTabs";
 import { STAGES, titleMatch, type AshbyData, type AshbyRole } from "@/lib/ashby";
 import type { HiringData, Role } from "@/lib/hiring";
+import type { PendingStart } from "@/lib/notion";
 import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
 
 const fmtDate = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -13,7 +14,7 @@ const STALE_DAYS = 30;
 const STATUS_SHORT: Record<string, string> = { "Pend Functional Spec": "Pending spec", "Sales/In progress": "In sales" };
 const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal assessment", "Service Delivery Manager Interview": "SDM interview", "Ready to Submit": "Ready to submit", "Submitted to the client": "Submitted", "Client initial Interview": "Client interview", "Client Assessment": "Client assessment", "2nd Client Interview": "2nd interview", "Waiting for Final Feedback": "Final feedback", "Offer": "Offer" };
 
-export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
+export default function TalentAcquisition({ data, ashby = null, pending = null }: { data: HiringData; ashby?: AshbyData | null; pending?: PendingStart[] | null }) {
   const { totals, open, openRoles, monthly, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
   const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) >= STALE_DAYS);
@@ -44,6 +45,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
       ? "Nothing needs attention today."
       : `${attention} ${attention === 1 ? "needs" : "need"} attention: ${[aging.length ? `${aging.length} open ${STALE_DAYS} days or more` : "", noSubmit.length ? `${noSubmit.length} with no submittal after 2 weeks` : "", onHold.length ? `${onHold.length} on hold` : ""].filter(Boolean).join(", ")}.`,
     ashby ? `Candidates in process: ${sumStages(beforeSubmit)} with Puzzle before submission, ${sumStages(withClientStages)} with the client${ashby.stages.Offer ? `, ${ashby.stages.Offer} at offer` : ""}.` : "",
+    pending && pending.length > 0 ? `Hires pending to start: ${pending.length}, next on ${fmtDate(pending[0].startDate)} (${pending[0].client}).` : "",
     oldest && age(oldest) !== null ? `Longest open: ${oldest.title} (${oldest.client}), ${age(oldest)} days.` : "",
   ].filter(Boolean);
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
@@ -126,6 +128,24 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
         }
         tabs={[
           { id: "roles", label: "Active roles & pipeline", node: (<>
+        {pending && pending.length > 0 && (
+          <section className="ta-pending">
+            <h2>Hires pending to start <span className="week-range">{pending.length} {pending.length === 1 ? "person" : "people"}</span></h2>
+            <table className="ta-pending-table">
+              <thead><tr><th>Client</th><th>Role</th><th>Start date</th><th>Starts in</th></tr></thead>
+              <tbody>
+                {pending.map((h, i) => (
+                  <tr key={i}>
+                    <td>{h.client}</td>
+                    <td>{h.role}</td>
+                    <td>{fmtDate(h.startDate)}</td>
+                    <td>{h.daysUntil === 1 ? "Tomorrow" : `${h.daysUntil} days`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
         <div className="ta-block" id="roles">
           <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are in the pipeline.</p></div>
           <section className="chart-card">

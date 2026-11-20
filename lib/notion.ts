@@ -424,3 +424,16 @@ export async function loadCustomerSuccess() {
 
   return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, clientNotes, weekUpdates, weekStart: week.start, weekEnd: week.end, loadedAt: new Date().toISOString(), today };
 }
+
+
+// --- Hires pending to start (for Talent Acquisition) -------------------------
+// People already hired whose Start Date in the tracker is still in the future. Only client, role and
+// start date leave the server: no names, rates or salaries.
+export type PendingStart = { client: string; role: string; startDate: string; daysUntil: number };
+export async function loadPendingStarts(today: string): Promise<PendingStart[]> {
+  const pages = await queryAll(DATA_SOURCES.engineers);
+  return mapEngineers(pages, today)
+    .filter((e) => e.startDate && e.startDate > today && e.status !== "Terminated")
+    .map((e) => ({ client: e.clients.join(", ") || "—", role: e.role || "—", startDate: e.startDate as string, daysUntil: daysBetween(today, e.startDate as string) }))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.client.localeCompare(b.client));
+}
