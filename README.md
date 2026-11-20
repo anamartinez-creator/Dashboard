@@ -4,7 +4,7 @@ Dashboard de operaciones de Puzzle con tres módulos en la barra lateral. Es de 
 
 | Módulo | Ruta | Fuente de datos | Qué muestra |
 | --- | --- | --- | --- |
-| **Service Delivery** | `/` | Notion (Master SDM Tracker) | Semáforo y score por cliente, pilotos, salud del equipo, personas que requieren seguimiento. Solo el equipo de un SDM (Ana Martinez por defecto); deja fuera a Customer Success. |
+| **Software Development** | `/` | Notion (Master SDM Tracker) | Semáforo y score por cliente, pilotos, salud del equipo, personas que requieren seguimiento. Solo el equipo de un SDM (Ana Martinez por defecto); deja fuera a Customer Success. |
 | **Customer Success** | `/customer-success` | Notion (mismo tracker) | La misma vista para los clientes de Customer Success. |
 | **Talent Acquisition** | `/talent-acquisition` | Google Sheets (Active Job Openings y Bonuses) y, opcional, Ashby | Roles activos y su pipeline, lo que requiere atención, contrataciones por mes y quarter, demanda por cliente. |
 
@@ -32,14 +32,14 @@ Repositorio: `anamartinez-creator/Dashboard` (el proyecto de Vercel se llama `sd
 
      | Variable | Módulo | Obligatoria | Valor |
      | --- | --- | --- | --- |
-     | `NOTION_TOKEN` | Service Delivery y Customer Success | Sí | el token `ntn_...` de la integración |
+     | `NOTION_TOKEN` | Software Development y Customer Success | Sí | el token `ntn_...` de la integración |
      | `GOOGLE_SERVICE_ACCOUNT_JSON` | Talent Acquisition | Sí | el JSON completo de la cuenta de servicio de Google (solo lectura) |
      | `HIRING_SHEET_ID` | Talent Acquisition | Sí | ID de la hoja "Active Job Openings" |
      | `BONUSES_SHEET_ID` | Talent Acquisition | No | ID de la hoja "Bonuses - Hires and Referrals" (ya hay un valor por defecto en `lib/hiring.ts`) |
      | `ASHBY_API_KEY` | Talent Acquisition | No | llave de Ashby de solo lectura (Candidates y Jobs); sin ella la página funciona igual, sin las etapas de Ashby |
      | `DASHBOARD_PASSWORD`, `REQUIRE_PASSWORD` | Todos | No | solo si quieres pedir contraseña |
-     | `NOTION_WEBHOOK_SECRET` | Service Delivery | No | ver "Actualización instantánea con webhook" |
-     | `SDM_TEAM`, `SDM_OWNER` | Service Delivery | No | ver "Alcance" |
+     | `NOTION_WEBHOOK_SECRET` | Software Development | No | ver "Actualización instantánea con webhook" |
+     | `SDM_TEAM`, `SDM_OWNER` | Software Development | No | ver "Alcance" |
 
    - Dale **Deploy**. Si agregas o cambias variables después, haz **Redeploy**: solo aplican a deploys nuevos.
 
@@ -63,7 +63,7 @@ El semáforo de cada cliente es el peor de sus motivos. Las reglas están en `li
 
 El score (0 a 100) empieza en 100 y resta puntos por cada motivo; sirve para ordenar dentro de cada color. Los clientes se relacionan con personas y SOWs por nombre aunque se escriban distinto en Notion ("Proline Eng" y "Proline Engineering", "Vertex" y "VertexOne"). Los pilotos solo se evalúan para personas en New Hire o con `Pilot End` lleno.
 
-## Cómo funciona (Service Delivery y Customer Success)
+## Cómo funciona (Software Development y Customer Success)
 
 - Los datos se leen de Notion en el servidor y se refrescan cada minuto como máximo. La página abierta se actualiza sola cada minuto, y el botón **Actualizar ahora** (al pie) fuerza una lectura nueva de Notion. Lo que cambies en el tracker aparece en el dashboard en ~1 minuto, sin redeploy.
 - Al navegador solo llegan los campos que muestra la página. **Salary Rate, Equipment, la columna Notes y las notas del SOW Tracker nunca salen del servidor.**
@@ -133,7 +133,7 @@ Para comprobar que compila antes de subir: `npm run build`.
 - `lib/health.ts`: reglas del semáforo y del score.
 - `lib/hiring.ts`: lee las hojas de Google y arma los datos de Talent Acquisition (roles, estados, hires, historial por cliente).
 - `lib/ashby.ts`: candidatos por etapa de Ashby y el cruce por título con la hoja.
-- `app/Dashboard.tsx`: Service Delivery y Customer Success.
+- `app/Dashboard.tsx`: Software Development y Customer Success.
 - `app/TalentAcquisition.tsx` y `app/TaTabs.tsx`: la página de Talent Acquisition y sus pestañas.
 - `app/AutoRefresh.tsx`: refresco automático y botón de actualizar.
 - `app/Sidebar.tsx`: la barra lateral con los módulos.

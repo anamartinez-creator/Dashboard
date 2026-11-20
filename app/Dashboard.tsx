@@ -37,7 +37,7 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ title = "Software Service Delivery Dashboard", contacts = true, owner, notes, clientNotes, engineers, sows, clients, loadedAt, today }: Props) {
+export default function Dashboard({ title = "Software Development", contacts = true, owner, notes, clientNotes, engineers, sows, clients, loadedAt, today }: Props) {
   const mine = engineers;
 
   const counts = useMemo(() => {

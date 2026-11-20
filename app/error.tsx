@@ -3,7 +3,7 @@
 export default function ErrorPage({ reset }: { reset: () => void }) {
   return (
     <main className="wrap">
-      <h1>Software Service Delivery Dashboard</h1>
+      <h1>Software Development</h1>
       <div className="error">
         <strong>Notion is temporarily unavailable.</strong>
         <p>This usually clears in a minute. Your tracker data is safe.</p>

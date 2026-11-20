@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Sidebar from "./Sidebar";
 
 export const metadata: Metadata = {
-  title: "Software Service Delivery Dashboard",
+  title: "Software Development",
   description: "Client and team health from the Master SDM Tracker",
   robots: { index: false, follow: false },
 };
