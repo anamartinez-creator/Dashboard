@@ -78,6 +78,8 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
     return row;
   });
 
+  const yr = byQuarter.reduce((t, x) => ({ opened: t.opened + x.opened, filled: t.filled + x.filled, cancelled: t.cancelled + x.cancelled, lost: t.lost + x.lost, open: t.open + x.open }), { opened: 0, filled: 0, cancelled: 0, lost: 0, open: 0 });
+
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
   const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
 
@@ -199,9 +201,13 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </>) },
           { id: "momentum", label: "Hiring momentum", node: (<>
         <div className="ta-stats">
-          <div className="ta-stat"><b>{totals.hires}</b><span>Hires since January</span></div>
-          <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
-          <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate</span></div>
+          <div className="ta-stat"><b>{yr.opened}</b><span>Roles opened since January</span></div>
+          <div className="ta-stat"><b>{yr.filled}</b><span>Roles filled</span></div>
+          <div className="ta-stat"><b>{yr.cancelled}</b><span>Roles cancelled</span></div>
+          <div className="ta-stat"><b>{yr.lost}</b><span>Roles lost</span></div>
+          <div className="ta-stat"><b>{yr.open}</b><span>Roles still open</span></div>
+          <div className="ta-stat"><b>{totals.hires}</b><span>People hired</span></div>
+          <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate (cancelled not counted)</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
         </div>
 
