@@ -63,7 +63,6 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
     { n: hiresWk.length, label: "Hires this week", note: data.hires ? (diff === 0 ? "same as last week" : `${diff > 0 ? "+" : ""}${diff} vs last week`) : "" },
     { n: openedWk.length, label: "Roles opened", note: `${closedWk.length} closed` },
     { n: pending ? pending.length : "—", label: "Pending to start", note: pending && pending[0] ? `next: ${fmtDate(pending[0].startDate).replace(/, \d{4}$/, "")}` : "" },
-    { n: attention, label: "Need attention", note: attention ? "see Needs attention tab" : "all good" },
   ];
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
@@ -129,27 +128,32 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
               <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
               <h2 className="brief-title">{summary[0]}</h2>
               <div className="ta-cards">
-                {weekCards.map((c) =>
-                  c.label === "Pending to start" && pending && pending.length > 0 ? (
+                {weekCards.map((c) => {
+                  const rows: { a: string; b: string; c: string }[] =
+                    c.label === "Pending to start" && pending
+                      ? pending.map((h) => ({ a: h.name, b: `${h.role} · ${h.client}`, c: `${fmtDate(h.startDate)} · ${h.daysUntil === 1 ? "tomorrow" : `in ${h.daysUntil} days`}` }))
+                      : c.label === "Roles opened"
+                        ? [
+                            ...openedWk.map((r) => ({ a: r.title, b: `${r.client} · opened`, c: r.opened ? fmtDate(r.opened) : "" })),
+                            ...closedWk.map((r) => ({ a: r.title, b: `${r.client} · ${r.status.toLowerCase()}`, c: r.closed ? fmtDate(r.closed) : "" })),
+                          ]
+                        : [];
+                  return rows.length > 0 ? (
                     <details key={c.label} className="ta-card ta-card-open">
                       <summary>
                         <b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}
                         <em className="ta-card-hint">Click for details</em>
                       </summary>
                       <ul className="ta-pend-list">
-                        {pending.map((h, i) => (
-                          <li key={i}>
-                            <span className="pn">{h.name}</span>
-                            <span className="pr">{h.role} · {h.client}</span>
-                            <span className="pd">{fmtDate(h.startDate)} · {h.daysUntil === 1 ? "tomorrow" : `in ${h.daysUntil} days`}</span>
-                          </li>
+                        {rows.map((r, i) => (
+                          <li key={i}><span className="pn">{r.a}</span><span className="pr">{r.b}</span><span className="pd">{r.c}</span></li>
                         ))}
                       </ul>
                     </details>
                   ) : (
                     <div key={c.label} className="ta-card"><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>
-                  )
-                )}
+                  );
+                })}
               </div>
             </div>
           </div>
