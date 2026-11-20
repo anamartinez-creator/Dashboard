@@ -37,17 +37,32 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
   const withClientStages = ["Submitted to the client", "Client initial Interview", "Client Assessment", "2nd Client Interview", "Waiting for Final Feedback"];
   const beforeSubmit = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Ready to Submit"];
   const sumStages = (names: string[]) => (ashby ? names.reduce((n, k) => n + (ashby.stages[k] ?? 0), 0) : 0);
+  // This week = Monday to Sunday of the current week
+  const dow = (new Date(today + "T00:00:00Z").getUTCDay() + 6) % 7;
+  const addD = (iso: string, n: number) => new Date(Date.parse(iso + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+  const wkStart = addD(today, -dow);
+  const wkEnd = addD(wkStart, 6);
+  const inWeek = (d: string | null | undefined) => !!d && d >= wkStart && d <= wkEnd;
+  const allRoles = data.clientHistory.flatMap((g) => g.clients.flatMap((c) => c.roles.map((r) => ({ ...r, client: c.client }))));
+  const openedWk = allRoles.filter((r) => inWeek(r.opened));
+  const closedWk = allRoles.filter((r) => inWeek(r.closed) && ["Filled", "Cancelled", "Lost"].includes(r.status));
+  const hiresWk = (data.hires ?? []).filter((h) => inWeek(h.date));
+  const startingSoon = (pending ?? []).filter((h) => h.startDate <= addD(today, 7));
+  const attentionList = [...aging, ...onHold, ...noSubmit].slice(0, 4);
+  const offers = ashby?.stages.Offer ?? 0;
   const summary = [
     active.length === 0
       ? "No roles are being hired for right now."
       : `${plural(active.length, "role is", "roles are")} being hired for right now (${plural(activePositions, "opening", "openings")}).`,
-    attention === 0
-      ? "Nothing needs attention today."
-      : `${attention} ${attention === 1 ? "needs" : "need"} attention: ${[aging.length ? `${aging.length} open ${STALE_DAYS} days or more` : "", noSubmit.length ? `${noSubmit.length} with no submittal after 2 weeks` : "", onHold.length ? `${onHold.length} on hold` : ""].filter(Boolean).join(", ")}.`,
-    ashby ? `Candidates in process: ${sumStages(beforeSubmit)} with Puzzle before submission, ${sumStages(withClientStages)} with the client${ashby.stages.Offer ? `, ${ashby.stages.Offer} at offer` : ""}.` : "",
-    pending && pending.length > 0 ? `Hires pending to start: ${pending.length}, next on ${fmtDate(pending[0].startDate)} (${pending[0].client}).` : "",
-    oldest && age(oldest) !== null ? `Longest open: ${oldest.title} (${oldest.client}), ${age(oldest)} days.` : "",
-  ].filter(Boolean);
+  ];
+  const weekStats: [number | string, string][] = [
+    [hiresWk.length, "Hires this week"],
+    [openedWk.length, "Roles opened"],
+    [closedWk.length, "Roles closed"],
+    [pending ? pending.length : "—", "Pending to start"],
+    [ashby ? offers : "—", "At offer"],
+    [attention, "Need attention"],
+  ];
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
   // Quarter-over-quarter hires (current quarter is partial)
@@ -111,7 +126,30 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
             <div className="brief-main">
               <p className="brief-eyebrow">This week</p>
               <h2 className="brief-title">{summary[0]}</h2>
-              <p className="ta-sum">{summary.slice(1).map((t, i) => <span key={i}>{t}<br /></span>)}</p>
+              <div className="ta-wk-stats">
+                {weekStats.map(([n, l]) => (<div key={l}><b>{n}</b><span>{l}</span></div>))}
+              </div>
+              <div className="ta-wk-cols">
+                <div>
+                  <h3>This week <em>{fmtDate(wkStart)} – {fmtDate(wkEnd)}</em></h3>
+                  <ul>
+                    {hiresWk.map((h, i) => (<li key={`h${i}`}>Hired: {h.role} · {h.client}</li>))}
+                    {openedWk.map((r, i) => (<li key={`o${i}`}>Opened: {r.title} · {r.client}</li>))}
+                    {closedWk.map((r, i) => (<li key={`c${i}`}>{r.status}: {r.title} · {r.client}</li>))}
+                    {hiresWk.length + openedWk.length + closedWk.length === 0 && <li>Nothing new yet this week.</li>}
+                  </ul>
+                </div>
+                <div>
+                  <h3>Coming up</h3>
+                  <ul>
+                    {startingSoon.map((h, i) => (<li key={`s${i}`}>Starts {fmtDate(h.startDate)}: {h.role} · {h.client}</li>))}
+                    {ashby && offers > 0 && <li>{plural(offers, "candidate is", "candidates are")} at offer</li>}
+                    {attentionList.map((r) => (<li key={r.key}>Needs attention: {r.title} · {r.client} ({reason(r)})</li>))}
+                    {attention > attentionList.length && <li>+{attention - attentionList.length} more in the Needs attention tab</li>}
+                    {startingSoon.length === 0 && offers === 0 && attention === 0 && <li>Nothing pending.</li>}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
