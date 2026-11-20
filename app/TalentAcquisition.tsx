@@ -136,10 +136,12 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                 {g.clients.map((c) => (
                   <div className="ta-row" key={c.client}>
                     <span className="g-name">{c.client}</span>
-                    <div className="ta-track" title={`${c.filled} filled · ${c.open} open · ${c.closed} closed without a hire`}>
-                      <div className="ta-seg" style={{ width: `${(c.filled / histMax) * 100}%`, background: "var(--ok)" }} />
-                      <div className="ta-seg" style={{ width: `${(c.open / histMax) * 100}%`, background: "var(--blue)" }} />
-                      <div className="ta-seg" style={{ width: `${(c.closed / histMax) * 100}%`, background: "var(--seg-muted)" }} />
+                    <div className="ta-track ta-track-tip">
+                      {([[c.filled, "var(--ok)", "Filled"], [c.open, "var(--blue)", "Still open"], [c.cancelled, "var(--seg-muted)", "Cancelled"], [c.lost, "var(--bad)", "Lost"], [c.dropped, "#dfe4ea", "Dropped"]] as [number, string, string][])
+                        .filter(([n]) => n > 0)
+                        .map(([n, col, lab]) => (
+                          <div key={lab} className="ta-seg" tabIndex={0} data-tip={`${lab}: ${n} ${n === 1 ? "opening" : "openings"}`} style={{ width: `${(n / histMax) * 100}%`, background: col }} />
+                        ))}
                     </div>
                     <span className="ta-val">{c.total}</span>
                   </div>
@@ -150,7 +152,9 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
           <div className="ta-legend">
             <span><i style={{ background: "var(--ok)" }} />Filled</span>
             <span><i style={{ background: "var(--blue)" }} />Still open</span>
-            <span><i style={{ background: "var(--seg-muted)" }} />Cancelled, lost or dropped</span>
+            <span><i style={{ background: "var(--seg-muted)" }} />Cancelled</span>
+            <span><i style={{ background: "var(--bad)" }} />Lost</span>
+            <span><i style={{ background: "#dfe4ea", border: "1px solid #b9c2cc" }} />Dropped: the role disappeared from the tracker without a final status</span>
           </div>
         </div>
 
@@ -160,7 +164,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
             {byStatus.map((s) => (
               <div className="ta-row" key={s.status}>
                 <span className="g-name">{s.status}<small>{plural(s.roles, "role", "roles")}</small></span>
-                <div className="ta-track"><div className="ta-seg" style={{ width: `${(s.positions / maxStatus) * 100}%`, background: s.status === "Filled" ? "var(--ok)" : s.status === "Cancelled" || s.status === "Lost" || s.status === "Dropped" ? "var(--seg-muted)" : "var(--blue)" }} /></div>
+                <div className="ta-track ta-track-tip"><div className="ta-seg" tabIndex={0} data-tip={`${s.status}: ${s.positions} ${s.positions === 1 ? "position" : "positions"} in ${plural(s.roles, "role", "roles")}`} style={{ width: `${(s.positions / maxStatus) * 100}%`, background: s.status === "Filled" ? "var(--ok)" : s.status === "Cancelled" || s.status === "Lost" || s.status === "Dropped" ? "var(--seg-muted)" : "var(--blue)" }} /></div>
                 <span className="ta-val">{s.positions}</span>
               </div>
             ))}

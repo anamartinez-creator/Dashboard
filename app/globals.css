@@ -655,3 +655,15 @@ h2.brief-title::before { display: none; }
 .ta-stat.is-warn b { color: var(--warn); }
 .ta-details summary { cursor: pointer; font-family: var(--head-font); font-size: 16px; color: var(--blue); font-weight: 700; }
 .ta-details[open] summary { margin-bottom: 12px; }
+/* Bar labels on hover or keyboard focus */
+.ta-track-tip { overflow: visible; }
+.ta-track-tip .ta-seg { position: relative; cursor: default; }
+.ta-track-tip .ta-seg:first-child { border-radius: 999px 0 0 999px; }
+.ta-track-tip .ta-seg:last-child { border-radius: 0 999px 999px 0; }
+.ta-track-tip .ta-seg:only-child { border-radius: 999px; }
+.ta-track-tip .ta-seg:hover, .ta-track-tip .ta-seg:focus-visible { filter: brightness(1.08); outline: none; }
+.ta-track-tip .ta-seg[data-tip]:hover::after, .ta-track-tip .ta-seg[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--blue); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  white-space: nowrap; z-index: 20; box-shadow: 0 4px 14px rgba(0,64,108,.3); pointer-events: none;
+}
