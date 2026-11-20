@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { HiringSetupError, loadHiring } from "@/lib/hiring";
+import { loadAshby } from "@/lib/ashby";
 import { todayIso } from "@/lib/notion";
 import TalentAcquisition from "../TalentAcquisition";
 import UnitPlaceholder from "../UnitPlaceholder";
@@ -11,8 +12,8 @@ export const revalidate = 60;
 
 export default async function Page() {
   try {
-    const data = await loadHiring(todayIso());
-    return <TalentAcquisition data={data} />;
+    const [data, ashby] = await Promise.all([loadHiring(todayIso()), loadAshby().catch(() => null)]);
+    return <TalentAcquisition data={data} ashby={ashby} />;
   } catch (err) {
     if (err instanceof HiringSetupError)
       return <UnitPlaceholder title="Talent Acquisition" blurb={`Almost ready: ${err.message}`} />;

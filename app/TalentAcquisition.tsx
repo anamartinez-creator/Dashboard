@@ -1,4 +1,5 @@
 import AutoRefresh from "./AutoRefresh";
+import { titleMatch, type AshbyData, type AshbyRole } from "@/lib/ashby";
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
 
@@ -9,7 +10,7 @@ const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const STALE_DAYS = 30;
 
-export default function TalentAcquisition({ data }: { data: HiringData }) {
+export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
   const { totals, open, openRoles, monthly, byStatus, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
   const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) >= STALE_DAYS);
@@ -41,6 +42,23 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
   const quarters = [0, 1, 2, 3]
     .filter((q) => q * 3 < monthly.length)
     .map((q) => ({ q: `Q${q + 1}`, hires: monthly.slice(q * 3, q * 3 + 3).reduce((n, m) => n + m.hires, 0), partial: q === curQ }));
+
+  // Link each active role to its Ashby job by title (Ashby titles do not name the client)
+  const ashbyFor = new Map<string, { job: AshbyRole; shared: number }>();
+  const matchedJobs = new Set<string>();
+  if (ashby) {
+    for (const job of ashby.roles) {
+      const cands = active.map((r) => ({ r, m: titleMatch(r.title, job.title) })).filter((x) => x.m > 0);
+      const bestM = Math.max(0, ...cands.map((x) => x.m));
+      const best = cands.filter((x) => x.m === bestM);
+      for (const x of best) {
+        const prev = ashbyFor.get(x.r.key);
+        if (!prev || bestM === 2) ashbyFor.set(x.r.key, { job, shared: best.length });
+        matchedJobs.add(job.id);
+      }
+    }
+  }
+  const unmatched = ashby ? ashby.roles.filter((j) => !matchedJobs.has(j.id)) : [];
 
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
   const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
@@ -106,7 +124,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
               <div className="ta-scroll">
                 <table className="ta-table">
                   <thead>
-                    <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></tr>
+                    <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th>{ashby && <th className="c" title="Candidates in the SDM interview, submitted to the client or in a client interview, read from Ashby">In process (Ashby)</th>}</tr>
                   </thead>
                   <tbody>
                     {active.map((r) => (
@@ -120,6 +138,16 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                         <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
                         <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
                         <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
+                        {ashby && (() => {
+                          const m = ashbyFor.get(r.key);
+                          if (!m) return <td className="c" title="No job with this title in Ashby">—</td>;
+                          const j = m.job;
+                          return (
+                            <td className="c" title={`${j.title}: ${j.sdm} in SDM interview · ${j.submitted} submitted to the client · ${j.client} in client interview${m.shared > 1 ? ` (shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title)` : ""}`}>
+                              <span className={`ta-n${j.total ? "" : " is-0"}`}>{j.total}</span>{m.shared > 1 ? <small className="ta-count">shared</small> : null}
+                            </td>
+                          );
+                        })()}
                       </tr>
                     ))}
                   </tbody>
@@ -127,6 +155,9 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
               </div>
             )}
           </section>
+          {unmatched.length > 0 && (
+            <p className="ta-note">Open in Ashby but with no active role of the same title in the sheet: {unmatched.map((j) => `${j.title} (${j.total} in process)`).join("; ")}.</p>
+          )}
           </details>
         </div>
 
