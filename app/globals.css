@@ -823,3 +823,14 @@ html { scroll-behavior: smooth; }
 .ta-pend-list .pn { font-weight: 600; }
 .ta-pend-list .pr { opacity: .85; }
 .ta-pend-list .pd { text-align: right; opacity: .9; white-space: nowrap; }
+
+/* Bento box layout for the top cards */
+.ta-bento { grid-template-columns: repeat(4, 1fr); grid-auto-rows: minmax(120px, auto); gap: 16px; }
+.ta-bento .ta-card { border-radius: 22px; border: 1px solid rgba(255,255,255,.16); }
+.ta-bento .bt-hires { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(145deg, rgba(41,171,224,.55), rgba(90,154,31,.45)); padding: 28px 30px; }
+.ta-bento .bt-hires b { font-size: 84px; letter-spacing: -0.04em; }
+.ta-bento .bt-hires span { font-size: 17px; margin-top: 12px; font-weight: 600; }
+.ta-bento .bt-roles, .ta-bento .bt-pending { grid-column: span 2; }
+.ta-bento .bt-roles b, .ta-bento .bt-pending b { font-size: 44px; }
+.ta-bento .ta-card-open[open] { grid-column: 1 / -1; grid-row: auto; }
+@media (max-width: 760px) { .ta-bento { grid-template-columns: 1fr; } .ta-bento .ta-card, .ta-bento .bt-hires { grid-column: 1 / -1; grid-row: auto; } .ta-bento .bt-hires b { font-size: 60px; } }

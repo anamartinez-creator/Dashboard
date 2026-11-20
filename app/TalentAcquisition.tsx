@@ -127,7 +127,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
             <div className="brief-main">
               <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
               <h2 className="brief-title">{summary[0]}</h2>
-              <div className="ta-cards">
+              <div className="ta-cards ta-bento">
                 {weekCards.map((c) => {
                   const rows: { a: string; b: string; c: string }[] =
                     c.label === "Pending to start" && pending
@@ -139,7 +139,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
                           ]
                         : [];
                   return rows.length > 0 ? (
-                    <details key={c.label} className="ta-card ta-card-open">
+                    <details key={c.label} className={`ta-card ta-card-open bt-${c.label.split(" ")[0].toLowerCase()}`}>
                       <summary>
                         <b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}
                         <em className="ta-card-hint">Click for details</em>
@@ -151,7 +151,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
                       </ul>
                     </details>
                   ) : (
-                    <div key={c.label} className="ta-card"><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>
+                    <div key={c.label} className={`ta-card bt-${c.label.split(" ")[0].toLowerCase()}`}><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>
                   );
                 })}
               </div>
