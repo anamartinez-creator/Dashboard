@@ -58,10 +58,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
       }
     }
   }
-  const PRE = STAGES.slice(0, 4);
-  const CLIENT = STAGES.slice(4, 9);
   const pipeTotal = ashby ? STAGES.reduce((n, k) => n + ashby.stages[k], 0) : 0;
-  const pipeMax = ashby ? Math.max(1, ...STAGES.map((k) => ashby.stages[k])) : 1;
   const jobClient = new Map<string, string>();
   for (const r of active) { const m = ashbyFor.get(r.key); if (m && m.shared === 1) jobClient.set(m.job.id, r.client); }
   const unmatched = ashby ? ashby.roles.filter((j) => !matchedJobs.has(j.id)) : [];
@@ -123,59 +120,29 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
 
         {ashby && (
           <div className="ta-block">
-            <div className="ta-sec"><h2>Candidate pipeline</h2><p>Where the candidates for our open jobs are today, from Ashby. Stages are grouped: with Puzzle before submission, with the client, and offers.</p></div>
-            <div className="ta-grid">
-              <section className="chart-card">
-                <h3>Funnel <span className="chart-total">{pipeTotal} candidates in process</span></h3>
-                {STAGES.map((n) => (
-                  <div className="ta-row ta-fun" key={n}>
-                    <span className="g-name">{n}</span>
-                    <div className="ta-track"><div className="ta-seg" style={{ width: `${(ashby.stages[n] / pipeMax) * 100}%`, background: PRE.includes(n) ? "var(--blue)" : n === "Offer" ? "var(--ok)" : "var(--cyan, #29abe0)" }} /></div>
-                    <span className="ta-val">{ashby.stages[n]}</span>
-                  </div>
-                ))}
-              </section>
-              <section className="chart-card">
-                <h3>By job</h3>
-                <div className="ta-scroll">
-                  <table className="ta-table">
-                    <thead><tr><th>Job</th><th>Client</th><th className="c">With Puzzle</th><th className="c">With client</th><th className="c">Offer</th></tr></thead>
-                    <tbody>
-                      {ashby.roles.map((j) => {
-                        const sum = (names: string[]) => names.reduce((n, k) => n + j.stages[k], 0);
-                        return (
-                          <tr key={j.id}>
-                            <td><b>{j.title.replace(/\s*\(PZ-?\d+\)/i, "")}</b></td>
-                            <td>{jobClient.get(j.id) ?? "—"}</td>
-                            <td className="c"><span className={`ta-n${sum(PRE) ? "" : " is-0"}`}>{sum(PRE)}</span></td>
-                            <td className="c"><span className={`ta-n${sum(CLIENT) ? "" : " is-0"}`}>{sum(CLIENT)}</span></td>
-                            <td className="c"><span className={`ta-n${j.stages.Offer ? "" : " is-0"}`}>{j.stages.Offer}</span></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-            <details className="ta-details" style={{ marginTop: 12 }}>
-              <summary>Every stage, job by job</summary>
-              <section className="chart-card">
-                <div className="ta-scroll">
-                  <table className="ta-table ta-stage-table">
-                    <thead><tr><th>Job</th>{STAGES.map((n) => <th className="c" key={n}>{n}</th>)}</tr></thead>
-                    <tbody>
-                      {ashby.roles.map((j) => (
-                        <tr key={j.id}>
-                          <td><b>{j.title.replace(/\s*\(PZ-?\d+\)/i, "")}</b></td>
-                          {STAGES.map((n) => <td className="c" key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            </details>
+            <div className="ta-sec"><h2>Candidate pipeline</h2><p>Candidates in each Ashby stage, job by job. {pipeTotal} candidates in process.</p></div>
+            <section className="chart-card">
+              <div className="ta-scroll">
+                <table className="ta-table ta-stage-table">
+                  <thead><tr><th>Job</th><th>Client</th>{STAGES.map((n) => <th className="c" key={n}>{n}</th>)}<th className="c">Total</th></tr></thead>
+                  <tbody>
+                    {ashby.roles.map((j) => (
+                      <tr key={j.id}>
+                        <td><b>{j.title.replace(/\s*\(PZ-?\d+\)/i, "")}</b></td>
+                        <td>{jobClient.get(j.id) ?? "—"}</td>
+                        {STAGES.map((n) => <td className="c" key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
+                        <td className="c"><b>{j.all}</b></td>
+                      </tr>
+                    ))}
+                    <tr className="ta-total-row">
+                      <td><b>All open jobs</b></td><td />
+                      {STAGES.map((n) => <td className="c" key={n}><b>{ashby.stages[n]}</b></td>)}
+                      <td className="c"><b>{pipeTotal}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
 

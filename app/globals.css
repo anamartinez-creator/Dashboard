@@ -716,3 +716,5 @@ h2.brief-title::before { display: none; }
 .ta-fun { grid-template-columns: minmax(150px, 210px) 1fr 32px; }
 .ta-fun .g-name { font-size: 13px; }
 .ta-stage-table th { font-size: 10px; white-space: normal; min-width: 70px; }
+
+.ta-total-row td { border-top: 2px solid var(--blue); background: var(--tint); }
