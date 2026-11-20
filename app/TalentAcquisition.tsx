@@ -34,13 +34,14 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
     .map((q) => ({ q: `Q${q + 1}`, hires: monthly.slice(q * 3, q * 3 + 3).reduce((n, m) => n + m.hires, 0), partial: q === curQ }));
 
   // Client demand trend: positions opened in the last 90 days vs the 90 days before
-  const trend = new Map<string, { recent: number; prev: number }>();
+  const trend = new Map<string, { recent: number; prev: number; roles: { title: string; opened: string; positions: number; status: string; recent: boolean }[] }>();
   for (const g of data.clientHistory) for (const c of g.clients) for (const r of c.roles) {
     if (!r.opened) continue;
     const d = dayDiff(r.opened, today);
     if (d < 0 || d >= 180) continue;
-    const t = trend.get(c.client) ?? { recent: 0, prev: 0 };
+    const t = trend.get(c.client) ?? { recent: 0, prev: 0, roles: [] };
     if (d < 90) t.recent += r.positions; else t.prev += r.positions;
+    t.roles.push({ title: r.title, opened: r.opened, positions: r.positions, status: r.status, recent: d < 90 });
     trend.set(c.client, t);
   }
   const trendRows = [...trend.entries()].map(([client, t]) => ({ client, ...t, delta: t.recent - t.prev }));
@@ -164,18 +165,34 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Client demand trend</h2><p>Positions each client opened in the last 90 days compared with the 90 days before.</p></div>
+          <div className="ta-sec"><h2>Client demand trend</h2><p>Positions each client opened in the last 90 days compared with the 90 days before. Click a client to see the roles behind the numbers.</p></div>
           <div className="ta-grid">
             {([["Asking for more", rising, "up"], ["Asking for less", falling, "down"]] as const).map(([title, rows, cls]) => (
               <section className="chart-card" key={title}>
                 <h3>{title}</h3>
                 {rows.length === 0 && <p className="ta-note">No changes.</p>}
                 {rows.map((t) => (
-                  <div className="ta-trend" key={t.client}>
-                    <span>{t.client}</span>
-                    <span className="ta-trend-n">{t.prev} → {t.recent}</span>
-                    <em className={cls}>{t.delta > 0 ? "+" : "−"}{Math.abs(t.delta)}</em>
-                  </div>
+                  <details className="ta-cl ta-trend-d" key={t.client}>
+                    <summary className="ta-trend">
+                      <span className="g-name">{t.client}</span>
+                      <span className="ta-trend-n">{t.prev} → {t.recent}</span>
+                      <em className={cls}>{t.delta > 0 ? "+" : "−"}{Math.abs(t.delta)}</em>
+                    </summary>
+                    <table className="ta-table ta-trend-table">
+                      <thead><tr><th>Role</th><th>Opened</th><th className="c">Pos.</th><th>Status</th><th>Period</th></tr></thead>
+                      <tbody>
+                        {[...t.roles].sort((a, b) => b.opened.localeCompare(a.opened)).map((r, i) => (
+                          <tr key={i}>
+                            <td><b>{r.title}</b></td>
+                            <td>{fmtDate(r.opened)}</td>
+                            <td className="c">{r.positions}</td>
+                            <td>{r.status}</td>
+                            <td>{r.recent ? "Last 90 days" : "Previous 90"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </details>
                 ))}
               </section>
             ))}

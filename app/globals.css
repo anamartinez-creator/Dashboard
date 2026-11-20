@@ -698,3 +698,10 @@ h2.brief-title::before { display: none; }
 .ta-trend-n { color: var(--muted); font-size: 12.5px; }
 .ta-trend em { text-align: right; }
 .ta-active > summary { cursor: pointer; font-weight: 600; color: var(--blue); margin-bottom: 8px; }
+
+.ta-trend-d > summary.ta-trend { cursor: pointer; }
+.ta-trend-d > summary .g-name::before { content: "\25B8"; display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
+.ta-trend-d[open] > summary .g-name::before { transform: rotate(90deg); }
+.ta-trend-table { margin: 4px 0 10px 14px; width: calc(100% - 14px); font-size: 12.5px; }
+.ta-trend-table th, .ta-trend-table td { padding: 5px 4px; }
+.ta-trend-table td:nth-child(n+2) { white-space: nowrap; }
