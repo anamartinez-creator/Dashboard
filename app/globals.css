@@ -770,3 +770,16 @@ html { scroll-behavior: smooth; }
 .ta-active-table thead th { font-size: 10px; letter-spacing: 0; }
 
 .ta-active-table .pill { white-space: nowrap; }
+
+.week { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-bottom: 24px; }
+.week h2 { margin: 0 0 10px; font-size: 20px; }
+.week-range { font-family: var(--body-font, inherit); font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 10px; }
+.week-empty { margin: 0; color: var(--muted); }
+.week-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.week-list li { display: grid; grid-template-columns: 110px 160px 1fr; gap: 4px 14px; padding: 12px 0; border-top: 1px solid var(--line); align-items: start; }
+.week-list li:first-child { border-top: 0; }
+.week-date { color: var(--muted); font-size: 13px; padding-top: 2px; }
+.week-client { font-weight: 700; color: var(--blue); text-decoration: none; }
+.week-client:hover { text-decoration: underline; }
+.week-list p { margin: 0; font-size: 14px; line-height: 1.5; }
+@media (max-width: 800px) { .week-list li { grid-template-columns: 1fr; } }

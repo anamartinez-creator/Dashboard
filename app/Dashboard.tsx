@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Client, ClientNote, Engineer, LatestNote, Sow } from "@/lib/notion";
+import type { Client, ClientNote, Engineer, LatestNote, Sow, WeekUpdate } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
 import { CLIENT_MEETINGS } from "@/lib/client-meetings";
 import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
-type Props = { title?: string; contacts?: boolean; owner: string; notes: Record<string, LatestNote>; clientNotes?: Record<string, ClientNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
+type Props = { title?: string; contacts?: boolean; owner: string; notes: Record<string, LatestNote>; clientNotes?: Record<string, ClientNote>; weekUpdates?: WeekUpdate[]; weekStart?: string; weekEnd?: string; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
 const tone = (s: string) =>
   ({ "On track": "ok", Signed: "ok", "Needs Attention": "warn", Sent: "warn", "To confirm": "warn", "High Risk": "bad", Pending: "bad" } as Record<string, string>)[s] ?? "info";
@@ -37,7 +37,7 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ title = "Software Development", contacts = true, owner, notes, clientNotes, engineers, sows, clients, loadedAt, today }: Props) {
+export default function Dashboard({ title = "Software Development", contacts = true, owner, notes, clientNotes, weekUpdates, weekStart, weekEnd, engineers, sows, clients, loadedAt, today }: Props) {
   const mine = engineers;
 
   const counts = useMemo(() => {
@@ -251,6 +251,24 @@ export default function Dashboard({ title = "Software Development", contacts = t
       <main className="wrap" role="tabpanel">
         {tab === "overview" && (
           <>
+            {contacts && weekUpdates && weekStart && weekEnd && (
+              <section className="week" id="sec-week">
+                <h2>This week&apos;s updates <span className="week-range">{fmtDate(weekStart)} – {fmtDate(weekEnd)}</span></h2>
+                {weekUpdates.length === 0 ? (
+                  <p className="week-empty">No new client comments in Notion yet this week.</p>
+                ) : (
+                  <ul className="week-list">
+                    {weekUpdates.map((u, i) => (
+                      <li key={`${u.clientId}-${u.date}-${i}`}>
+                        <span className="week-date">{fmtDate(u.date)}</span>
+                        <a className="week-client" href={u.url} target="_blank" rel="noreferrer">{u.client}</a>
+                        <p>{u.comment}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
             <section className="exec">
               <div className="ask">
                 <span className="ask-label">Quick questions</span>

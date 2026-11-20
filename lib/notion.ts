@@ -261,7 +261,8 @@ function shorten(text: string): string {
   return end > 150 ? cut.slice(0, end + 1).replace(/;$/, ".") : cut.slice(0, cut.lastIndexOf(" ")) + "…";
 }
 
-async function fetchLatestClientNote(pageId: string): Promise<ClientNote | null> {
+// All rows of the client's comments table, newest first
+async function fetchClientRows(pageId: string): Promise<ClientNote[]> {
   const blocks = await notionGet(`blocks/${pageId}/children?page_size=100`, 60);
   const tables: any[] = (blocks?.results ?? []).filter((b: any) => b.type === "table");
   for (const table of tables) {
@@ -275,11 +276,21 @@ async function fetchLatestClientNote(pageId: string): Promise<ClientNote | null>
     const body = list
       .slice(1)
       .map((cells) => ({ date: cellDate(cells[iDate]), comment: shorten(plain(cells[iComment])) }))
-      .filter((r): r is { date: string; comment: string } => !!r.date && !!r.comment)
+      .filter((r): r is ClientNote => !!r.date && !!r.comment)
       .sort((a, b) => b.date.localeCompare(a.date));
-    if (body[0]) return body[0];
+    if (body.length) return body;
   }
-  return null;
+  return [];
+}
+
+// This week's updates: comments dated Monday to Sunday of the current week
+export type WeekUpdate = { clientId: string; client: string; url: string; date: string; comment: string };
+export function weekRange(today: string): { start: string; end: string } {
+  const d = new Date(today + "T00:00:00Z");
+  const back = (d.getUTCDay() + 6) % 7; // Monday = 0
+  const mon = new Date(d.getTime() - back * 86400000);
+  const sun = new Date(mon.getTime() + 6 * 86400000);
+  return { start: mon.toISOString().slice(0, 10), end: sun.toISOString().slice(0, 10) };
 }
 
 // This dashboard covers one SDM's side only (Ana Martinez by default; override
@@ -315,18 +326,23 @@ export async function loadTracker() {
     );
   }
 
-  // Newest comment of each client card (4 at a time, same rate-limit reason)
+  // Newest comment of each client card, and every comment of this week (4 clients at a time, same rate-limit reason)
+  const today = todayIso();
+  const week = weekRange(today);
   const clientNotes: Record<string, ClientNote> = {};
+  const weekUpdates: WeekUpdate[] = [];
   for (let i = 0; i < clients.length; i += 4) {
     await Promise.all(
       clients.slice(i, i + 4).map(async (cl) => {
-        const n = await fetchLatestClientNote(cl.id);
-        if (n) clientNotes[cl.id] = n;
+        const rows = await fetchClientRows(cl.id);
+        if (rows[0]) clientNotes[cl.id] = rows[0];
+        for (const r of rows) if (r.date >= week.start && r.date <= week.end) weekUpdates.push({ clientId: cl.id, client: cl.client, url: cl.url, date: r.date, comment: r.comment });
       })
     );
   }
+  weekUpdates.sort((a, b) => b.date.localeCompare(a.date) || a.client.localeCompare(b.client));
 
-  return { owner: OWNER, engineers, sows, clients, notes, clientNotes, loadedAt: new Date().toISOString(), today: todayIso() };
+  return { owner: OWNER, engineers, sows, clients, notes, clientNotes, weekUpdates, weekStart: week.start, weekEnd: week.end, loadedAt: new Date().toISOString(), today };
 }
 
 
