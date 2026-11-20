@@ -60,6 +60,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
   const hiresPrev = (data.hires ?? []).filter((h) => h.date >= prevStart && h.date <= prevEnd).length;
   const diff = hiresWk.length - hiresPrev;
   const weekCards: { n: number | string; label: string; note: string }[] = [
+    { n: active.length, label: "Active roles", note: plural(activePositions, "opening", "openings") },
     { n: hiresWk.length, label: "Hires this week", note: data.hires ? (diff === 0 ? "same as last week" : `${diff > 0 ? "+" : ""}${diff} vs last week`) : "" },
     { n: openedWk.length, label: "Roles opened", note: `${closedWk.length} closed` },
     { n: pending ? pending.length : "—", label: "Pending to start", note: pending && pending[0] ? `next: ${fmtDate(pending[0].startDate).replace(/, \d{4}$/, "")}` : "" },
@@ -126,7 +127,6 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
               <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
-              <h2 className="brief-title">{summary[0]}</h2>
               <div className="ta-cards ta-bento">
                 {weekCards.map((c) => {
                   const rows: { a: string; b: string; c: string }[] =

@@ -851,3 +851,13 @@ html { scroll-behavior: smooth; }
 .ta-bento .ta-pend-list li { padding: 7px 0; font-size: 13px; }
 .hero .brief { padding: 16px 20px; }
 .hero h2.brief-title { font-size: 22px; }
+
+/* Bento v2: Active roles is the big tile */
+.ta-bento .bt-active { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(145deg, rgba(41,171,224,.55), rgba(90,154,31,.45)); padding: 16px 20px; }
+.ta-bento .bt-active b { font-size: 52px; letter-spacing: -0.04em; }
+.ta-bento .bt-active span { font-size: 14px; margin-top: 6px; font-weight: 600; }
+.ta-bento .bt-hires { grid-column: span 1; grid-row: auto; display: block; background: rgba(255,255,255,.14); padding: 12px 16px; }
+.ta-bento .bt-hires b { font-size: 28px; letter-spacing: normal; }
+.ta-bento .bt-hires span { font-size: 12px; margin-top: 4px; font-weight: 400; }
+.ta-bento .bt-roles { grid-column: span 1; }
+.ta-bento .bt-pending { grid-column: span 2; }
