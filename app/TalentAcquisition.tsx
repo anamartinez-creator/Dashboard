@@ -39,7 +39,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
   const summary = [
     active.length === 0
       ? "No roles are being hired for right now."
-      : `${plural(active.length, "role is", "roles are")} being hired for right now (${plural(activePositions, "position", "positions")}).`,
+      : `${plural(active.length, "role is", "roles are")} being hired for right now (${plural(activePositions, "opening", "openings")}).`,
     attention === 0
       ? "Nothing needs attention today."
       : `${attention} ${attention === 1 ? "needs" : "need"} attention: ${[aging.length ? `${aging.length} open ${STALE_DAYS} days or more` : "", noSubmit.length ? `${noSubmit.length} with no submittal after 2 weeks` : "", onHold.length ? `${onHold.length} on hold` : ""].filter(Boolean).join(", ")}.`,
@@ -135,8 +135,8 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                 <table className={`ta-table${ashby ? " ta-active-table" : ""}`}>
                   {ashby && (
                     <colgroup>
-                      <col style={{ width: "17%" }} /><col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "4%" }} /><col style={{ width: "11%" }} />
-                      {STAGES.map((n) => <col key={n} style={{ width: "5.3%" }} />)}
+                      <col style={{ width: "16%" }} /><col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} /><col style={{ width: "11%" }} />
+                      {STAGES.map((n) => <col key={n} style={{ width: "5.2%" }} />)}
                     </colgroup>
                   )}
                   <thead>
@@ -148,7 +148,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                         <th className="g3" />
                       </tr>
                     )}
-                    <tr><th>Role</th><th>Client</th><th className="c">Open for</th><th className="c" title="Positions">Pos.</th><th>Status</th>
+                    <tr><th>Role</th><th>Client</th><th className="c">Open for</th><th className="c">Openings</th><th>Status</th>
                       {ashby
                         ? STAGES.map((n, k) => <th className={`c ${k < 4 ? "g1" : k < 9 ? "g2" : "g3"}${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n} title={n}>{SHORT[n] ?? n}</th>)
                         : <><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></>}
@@ -292,7 +292,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </>) },
           { id: "clients", label: "Demand by client", node: (<>
         <div className="ta-block" id="clients">
-          <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Click a client to see its roles with opening and closing dates. A role without a closing date keeps counting days as open until the sheet is edited.</p></div>
+          <div className="ta-sec"><h2>Demand by client</h2><p>Openings each client has had since January, and where they stand today. Click a client to see its roles with opening and closing dates. A role without a closing date keeps counting days as open until the sheet is edited.</p></div>
           <div className="ta-grid">
             {data.clientHistory.map((g) => (
               <section className="chart-card" key={g.group}>
@@ -311,7 +311,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                       <span className="ta-val">{c.total}</span>
                     </summary>
                     <table className="ta-table ta-cl-table">
-                      <thead><tr><th>Role</th><th>Status</th><th className="c">Pos.</th><th>Opened</th><th>Closed</th><th className="c">Days</th></tr></thead>
+                      <thead><tr><th>Role</th><th>Status</th><th className="c">Openings</th><th>Opened</th><th>Closed</th><th className="c">Days</th></tr></thead>
                       <tbody>
                         {c.roles.map((r, i) => (
                           <tr key={i}>
