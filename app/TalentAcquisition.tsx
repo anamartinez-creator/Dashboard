@@ -27,6 +27,26 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
   ];
   const briefTone = aging.length > 0 || onHold.length > 0 ? "is-warn" : "is-ok";
 
+  // Quarter-over-quarter hires (current quarter is partial)
+  const curQ = Math.floor((parseInt(today.slice(5, 7), 10) - 1) / 3);
+  const quarters = [0, 1, 2, 3]
+    .filter((q) => q * 3 < monthly.length)
+    .map((q) => ({ q: `Q${q + 1}`, hires: monthly.slice(q * 3, q * 3 + 3).reduce((n, m) => n + m.hires, 0), partial: q === curQ }));
+
+  // Client demand trend: positions opened in the last 90 days vs the 90 days before
+  const trend = new Map<string, { recent: number; prev: number }>();
+  for (const g of data.clientHistory) for (const c of g.clients) for (const r of c.roles) {
+    if (!r.opened) continue;
+    const d = dayDiff(r.opened, today);
+    if (d < 0 || d >= 180) continue;
+    const t = trend.get(c.client) ?? { recent: 0, prev: 0 };
+    if (d < 90) t.recent += r.positions; else t.prev += r.positions;
+    trend.set(c.client, t);
+  }
+  const trendRows = [...trend.entries()].map(([client, t]) => ({ client, ...t, delta: t.recent - t.prev }));
+  const rising = trendRows.filter((t) => t.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 5);
+  const falling = trendRows.filter((t) => t.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 5);
+
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
   const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
   const maxStatus = Math.max(1, ...byStatus.map((s) => s.positions));
@@ -83,6 +103,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
 
         <div className="ta-block">
           <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are.</p></div>
+          <details className="ta-details ta-active"><summary>Show the {active.length} active roles</summary>
           <section className="chart-card">
             {active.length === 0 && <p className="ta-note">No active roles right now.</p>}
             {active.length > 0 && (
@@ -110,6 +131,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
               </div>
             )}
           </section>
+          </details>
         </div>
 
         <div className="ta-block">
@@ -125,7 +147,39 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                 </div>
               ))}
             </div>
+            <div className="ta-q">
+              {quarters.map((x, i) => {
+                const prev = i > 0 ? quarters[i - 1].hires : null;
+                const d = prev === null ? null : x.hires - prev;
+                return (
+                  <div className="ta-q-i" key={x.q}>
+                    <span>{x.q}{x.partial ? " (so far)" : ""}</span>
+                    <b>{x.hires}</b>
+                    {d !== null && !x.partial && <em className={d >= 0 ? "up" : "down"}>{d >= 0 ? "▲" : "▼"} {Math.abs(d)} vs {quarters[i - 1].q}</em>}
+                  </div>
+                );
+              })}
+            </div>
           </section>
+        </div>
+
+        <div className="ta-block">
+          <div className="ta-sec"><h2>Client demand trend</h2><p>Positions each client opened in the last 90 days compared with the 90 days before.</p></div>
+          <div className="ta-grid">
+            {([["Asking for more", rising, "up"], ["Asking for less", falling, "down"]] as const).map(([title, rows, cls]) => (
+              <section className="chart-card" key={title}>
+                <h3>{title}</h3>
+                {rows.length === 0 && <p className="ta-note">No changes.</p>}
+                {rows.map((t) => (
+                  <div className="ta-trend" key={t.client}>
+                    <span>{t.client}</span>
+                    <span className="ta-trend-n">{t.prev} → {t.recent}</span>
+                    <em className={cls}>{t.delta > 0 ? "+" : "−"}{Math.abs(t.delta)}</em>
+                  </div>
+                ))}
+              </section>
+            ))}
+          </div>
         </div>
 
         <div className="ta-block">
