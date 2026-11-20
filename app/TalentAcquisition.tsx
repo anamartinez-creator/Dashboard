@@ -55,6 +55,21 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
   }
   const unmatched = ashby ? ashby.roles.filter((j) => !matchedJobs.has(j.id)) : [];
 
+  // Roles by the quarter they were opened, and how they ended up
+  const byQuarter = [0, 1, 2, 3].filter((q) => q <= curQ).map((q) => {
+    const row = { q: `Q${q + 1}`, partial: q === curQ, opened: 0, filled: 0, cancelled: 0, lost: 0, dropped: 0, open: 0 };
+    for (const g of data.clientHistory) for (const c of g.clients) for (const r of c.roles) {
+      if (!r.opened || Math.floor((parseInt(r.opened.slice(5, 7), 10) - 1) / 3) !== q) continue;
+      row.opened += 1;
+      if (r.status === "Filled") row.filled += 1;
+      else if (r.status === "Cancelled") row.cancelled += 1;
+      else if (r.status === "Lost") row.lost += 1;
+      else if (r.status === "Dropped") row.dropped += 1;
+      else row.open += 1;
+    }
+    return row;
+  });
+
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
   const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
 
@@ -185,6 +200,31 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                 );
               })}
             </div>
+          </section>
+        </div>
+
+        <div className="ta-block">
+          <div className="ta-sec"><h2>Roles by quarter</h2><p>Roles grouped by the quarter they were opened, and how each one ended up so far.</p></div>
+          <section className="chart-card">
+            <div className="ta-scroll">
+              <table className="ta-table">
+                <thead><tr><th>Quarter</th><th className="c">Opened</th><th className="c">Filled</th><th className="c">Cancelled</th><th className="c">Lost</th><th className="c">Dropped</th><th className="c">Still open</th></tr></thead>
+                <tbody>
+                  {byQuarter.map((x) => (
+                    <tr key={x.q}>
+                      <td><b>{x.q}</b>{x.partial ? " (so far)" : ""}</td>
+                      <td className="c"><b>{x.opened}</b></td>
+                      <td className="c"><span className="pill ok">{x.filled}</span></td>
+                      <td className="c">{x.cancelled}</td>
+                      <td className="c">{x.lost}</td>
+                      <td className="c">{x.dropped}</td>
+                      <td className="c">{x.open}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="ta-note">Dropped: the role disappeared from the tracker without a final status.</p>
           </section>
         </div>
 
