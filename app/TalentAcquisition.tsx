@@ -12,8 +12,8 @@ const STALE_DAYS = 30;
 export default function TalentAcquisition({ data }: { data: HiringData }) {
   const { totals, open, openRoles, monthly, byStatus, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
-  const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) > STALE_DAYS);
-  const onHold = openRoles.filter((r) => r.status === "On Hold");
+  const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) >= STALE_DAYS);
+  const onHold = openRoles.filter((r) => r.status === "On Hold" && (age(r) ?? 0) >= STALE_DAYS);
   const active = openRoles.filter((r) => OPEN_STATUSES.includes(r.status));
   const best = monthly.reduce((a, m) => (m.hires > a.hires ? m : a), { month: "", hires: 0 });
   const agingPositions = aging.reduce((n, r) => n + r.positions, 0);
@@ -23,7 +23,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
     `${plural(totals.hires, "person", "people")} hired since January${best.hires ? `; ${best.month} was the strongest month with ${best.hires}` : ""}.`,
     open.openPositions === 0
       ? "Nothing is open right now."
-      : `${plural(open.openPositions, "position", "positions")} open across ${plural(open.openRoles, "role", "roles")}${aging.length ? `, ${aging.length} of them open for more than ${STALE_DAYS} days` : ", none open for more than 30 days"}.`,
+      : `${plural(open.openPositions, "position", "positions")} open across ${plural(open.openRoles, "role", "roles")}${aging.length ? `, ${aging.length} of them open for ${STALE_DAYS} days or more` : `, none open for ${STALE_DAYS} days or more`}.`,
     `${pct(totals.fillRate)} of the roles that closed ended in a hire (cancelled roles are not counted).`,
   ];
   const briefTone = aging.length > 0 || onHold.length > 0 ? "is-warn" : "is-ok";
@@ -62,12 +62,12 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
           <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
           <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
-          <div className={`ta-stat${aging.length ? " is-warn" : ""}`}><b>{aging.length}</b><span>Roles open over {STALE_DAYS} days{agingPositions > aging.length ? ` (${agingPositions} positions)` : ""}</span></div>
+          <div className={`ta-stat${aging.length ? " is-warn" : ""}`}><b>{aging.length}</b><span>Roles open {STALE_DAYS} days or more{agingPositions > aging.length ? ` (${agingPositions} positions)` : ""}</span></div>
         </div>
 
         {(aging.length > 0 || onHold.length > 0) && (
           <div className="ta-block">
-            <div className="ta-sec"><h2>Needs attention</h2><p>Roles that have been open the longest, and roles on hold.</p></div>
+            <div className="ta-sec"><h2>Needs attention</h2><p>Roles that have been open for 30 days or more.</p></div>
             <section className="chart-card">
               <div className="ta-scroll">
                 <table className="ta-table">
