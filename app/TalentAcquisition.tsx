@@ -54,6 +54,12 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
     }
   }
   const unmatched = ashby ? ashby.roles.filter((j) => !matchedJobs.has(j.id)) : [];
+  // Client of an Ashby-only job: the one client whose sheet roles (any status) have a similar title
+  const guessClient = (title: string) => {
+    const hits = new Set<string>();
+    for (const g of data.clientHistory) for (const c of g.clients) for (const r of c.roles) if (titleMatch(r.title, title) > 0) hits.add(c.client);
+    return hits.size === 1 ? [...hits][0] : "—";
+  };
 
   // Roles by the quarter they were opened, and how they ended up
   const byQuarter = [0, 1, 2, 3].filter((q) => q <= curQ).map((q) => {
@@ -163,14 +169,22 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                         )}
                       </tr>
                     ))}
+                    {ashby && unmatched.map((j) => (
+                      <tr key={j.id}>
+                        <td><b>{j.title.replace(/\s*\(PZ-?\d+\)/i, "")}</b></td>
+                        <td>{guessClient(j.title)}</td>
+                        <td>—</td>
+                        <td className="c">—</td>
+                        <td className="c">—</td>
+                        <td><span className="pill warn" title="Open in Ashby, but no active role with this title in the sheet">Ashby only</span></td>
+                        {STAGES.map((n) => <td className="c" key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             )}
           </section>
-          {unmatched.length > 0 && (
-            <p className="ta-note">Open in Ashby but with no active role of the same title in the sheet: {unmatched.map((j) => `${j.title} (${j.total} in process)`).join("; ")}.</p>
-          )}
           </details>
         </div>
 
