@@ -1,5 +1,6 @@
 import AutoRefresh from "./AutoRefresh";
 import TaTabs from "./TaTabs";
+import WeekCards from "./WeekCards";
 import { STAGES, titleMatch, type AshbyData, type AshbyRole } from "@/lib/ashby";
 import type { HiringData, Role } from "@/lib/hiring";
 import type { PendingStart } from "@/lib/notion";
@@ -65,6 +66,15 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
     { n: openedWk.length, label: "Roles opened", note: `${closedWk.length} closed` },
     { n: pending ? pending.length : "—", label: "Pending to start", note: pending && pending[0] ? `next: ${fmtDate(pending[0].startDate).replace(/, \d{4}$/, "")}` : "" },
   ];
+  const cardRows = (label: string): { a: string; b: string; c: string }[] =>
+    label === "Pending to start" && pending
+      ? pending.map((h) => ({ a: h.name, b: `${h.role} · ${h.client}`, c: `${fmtDate(h.startDate)} · ${h.daysUntil === 1 ? "tomorrow" : `in ${h.daysUntil} days`}` }))
+      : label === "Roles opened"
+        ? [
+            ...openedWk.map((r) => ({ a: r.title, b: `${r.client} · opened`, c: r.opened ? fmtDate(r.opened) : "" })),
+            ...closedWk.map((r) => ({ a: r.title, b: `${r.client} · ${r.status.toLowerCase()}`, c: r.closed ? fmtDate(r.closed) : "" })),
+          ]
+        : [];
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
   // Quarter-over-quarter hires (current quarter is partial)
@@ -127,34 +137,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
               <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
-              <div className="ta-cards ta-row">
-                {weekCards.map((c) => {
-                  const rows: { a: string; b: string; c: string }[] =
-                    c.label === "Pending to start" && pending
-                      ? pending.map((h) => ({ a: h.name, b: `${h.role} · ${h.client}`, c: `${fmtDate(h.startDate)} · ${h.daysUntil === 1 ? "tomorrow" : `in ${h.daysUntil} days`}` }))
-                      : c.label === "Roles opened"
-                        ? [
-                            ...openedWk.map((r) => ({ a: r.title, b: `${r.client} · opened`, c: r.opened ? fmtDate(r.opened) : "" })),
-                            ...closedWk.map((r) => ({ a: r.title, b: `${r.client} · ${r.status.toLowerCase()}`, c: r.closed ? fmtDate(r.closed) : "" })),
-                          ]
-                        : [];
-                  return rows.length > 0 ? (
-                    <details key={c.label} className={`ta-card ta-card-open bt-${c.label.split(" ")[0].toLowerCase()}`}>
-                      <summary>
-                        <b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}
-                        <em className="ta-card-hint">Click for details</em>
-                      </summary>
-                      <ul className="ta-pend-list">
-                        {rows.map((r, i) => (
-                          <li key={i}><span className="pn">{r.a}</span><span className="pr">{r.b}</span><span className="pd">{r.c}</span></li>
-                        ))}
-                      </ul>
-                    </details>
-                  ) : (
-                    <div key={c.label} className={`ta-card bt-${c.label.split(" ")[0].toLowerCase()}`}><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>
-                  );
-                })}
-              </div>
+              <WeekCards cards={weekCards.map((c) => ({ ...c, rows: cardRows(c.label) }))} />
             </div>
           </div>
         </div>
