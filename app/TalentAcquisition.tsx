@@ -109,7 +109,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
           </div>
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
-              <p className="brief-eyebrow">Executive summary</p>
+              <p className="brief-eyebrow">This week</p>
               <h2 className="brief-title">{summary[0]}</h2>
               <p className="ta-sum">{summary.slice(1).map((t, i) => <span key={i}>{t}<br /></span>)}</p>
             </div>
