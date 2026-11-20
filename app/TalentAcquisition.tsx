@@ -132,6 +132,12 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
             {active.length > 0 && (
               <div className="ta-scroll">
                 <table className={`ta-table${ashby ? " ta-active-table" : ""}`}>
+                  {ashby && (
+                    <colgroup>
+                      <col style={{ width: "18%" }} /><col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "4%" }} /><col style={{ width: "8%" }} />
+                      {STAGES.map((n) => <col key={n} style={{ width: "5.5%" }} />)}
+                    </colgroup>
+                  )}
                   <thead>
                     {ashby && (
                       <tr className="ta-grp">

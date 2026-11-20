@@ -763,3 +763,8 @@ html { scroll-behavior: smooth; }
 .ta-active-table .ta-grp th { background: transparent; }
 .ta-active-table td:first-child { font-size: 13px; }
 @media (max-width: 1100px) { .ta-active-table { table-layout: auto; min-width: 1000px; } }
+
+.ta-active-table th:nth-child(n) { width: auto; min-width: 0; }
+.ta-active-table thead th { padding-left: 2px; padding-right: 2px; }
+
+.ta-active-table thead th { font-size: 10px; letter-spacing: 0; }
