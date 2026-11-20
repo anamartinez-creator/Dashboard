@@ -25,7 +25,7 @@ export type Role = {
   comment: string;
   firstTab: string;
   lastTab: string;
-  startDate: string | null; // ISO, for Filled roles
+  startDate: string | null; // ISO. Filled roles: hire date. Cancelled or Lost roles: the date it was closed, when recorded
   daysToStart: number | null;
   carried: boolean; // opened before 2026 (or no opening date)
   dropped: boolean; // vanished from the tracker without a final status
@@ -182,6 +182,9 @@ export function buildRoles(tabsIn: Tab[]): { roles: Role[]; latestTab: string } 
       if (r.status === "Filled") {
         const fromSheet = r.closed && r.closed !== placeholder ? r.closed : null;
         role.startDate = fromSheet ?? startFromComment(r.comment, year);
+      } else if (r.status === "Cancelled" || r.status === "Lost") {
+        // Only a date someone typed counts; the =today() placeholder means nobody recorded when it ended
+        role.startDate = r.closed && r.closed !== placeholder ? r.closed : null;
       }
     }
   }
@@ -262,8 +265,8 @@ export function summarize(allRoles: Role[], latestTab: string, today: string, bo
     let e = list.find((x) => sameClient(x.client, r.client));
     if (!e) { e = { client: r.client, total: 0, filled: 0, open: 0, cancelled: 0, lost: 0, dropped: 0, roles: [] }; list.push(e); }
     e.total += r.positions;
-    // Closed date: the hire date of a Filled role. Other roles keep the sheet's =today() placeholder, so they have none.
-    e.roles.push({ title: r.title, status: r.dropped ? "Dropped" : r.status, positions: r.positions, opened: r.opened, closed: r.status === "Filled" && !r.dropped ? r.startDate : null });
+    // Closed date: the hire date of a Filled role, or the date a Cancelled or Lost role was closed when someone recorded it.
+    e.roles.push({ title: r.title, status: r.dropped ? "Dropped" : r.status, positions: r.positions, opened: r.opened, closed: (r.status === "Filled" || r.status === "Cancelled" || r.status === "Lost") && !r.dropped ? r.startDate : null });
     if (r.dropped) e.dropped += r.positions;
     else if (r.status === "Cancelled") e.cancelled += r.positions;
     else if (r.status === "Lost") e.lost += r.positions;
