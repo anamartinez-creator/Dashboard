@@ -15,6 +15,14 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
   const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) >= STALE_DAYS);
   const onHold = openRoles.filter((r) => r.status === "On Hold" && (age(r) ?? 0) >= STALE_DAYS);
   const active = openRoles.filter((r) => OPEN_STATUSES.includes(r.status));
+  const NO_SUBMIT_DAYS = 14;
+  const noSubmit = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) >= NO_SUBMIT_DAYS && (age(r) ?? 0) < STALE_DAYS && !r.submitted);
+  const reason = (r: Role) => {
+    const a = age(r) ?? 0;
+    if (a >= STALE_DAYS && !r.submitted) return `${STALE_DAYS}+ days, no submittals`;
+    if (a >= STALE_DAYS) return `${STALE_DAYS}+ days open`;
+    return `${NO_SUBMIT_DAYS}+ days, no submittals`;
+  };
   const best = monthly.reduce((a, m) => (m.hires > a.hires ? m : a), { month: "", hires: 0 });
   const agingPositions = aging.reduce((n, r) => n + r.positions, 0);
 
@@ -26,7 +34,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
       : `${plural(open.openPositions, "position", "positions")} open across ${plural(open.openRoles, "role", "roles")}${aging.length ? `, ${aging.length} of them open for ${STALE_DAYS} days or more` : `, none open for ${STALE_DAYS} days or more`}.`,
     `${pct(totals.fillRate)} of the roles that closed ended in a hire (cancelled roles are not counted).`,
   ];
-  const briefTone = aging.length > 0 || onHold.length > 0 ? "is-warn" : "is-ok";
+  const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
   // Quarter-over-quarter hires (current quarter is partial)
   const curQ = Math.floor((parseInt(today.slice(5, 7), 10) - 1) / 3);
@@ -65,20 +73,21 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
           <div className={`ta-stat${aging.length ? " is-warn" : ""}`}><b>{aging.length}</b><span>Roles open {STALE_DAYS} days or more{agingPositions > aging.length ? ` (${agingPositions} positions)` : ""}</span></div>
         </div>
 
-        {(aging.length > 0 || onHold.length > 0) && (
+        {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && (
           <div className="ta-block">
-            <div className="ta-sec"><h2>Needs attention</h2><p>Roles that have been open for 30 days or more.</p></div>
+            <div className="ta-sec"><h2>Needs attention</h2><p>Roles open 30 days or more, and roles open 2 weeks or more with no submittal yet.</p></div>
             <section className="chart-card">
               <div className="ta-scroll">
                 <table className="ta-table">
-                  <thead><tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th><th>Why</th></tr></thead>
                   <tbody>
-                    {[...aging, ...onHold].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0)).map((r) => (
+                    {[...aging, ...onHold, ...noSubmit].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0)).map((r) => (
                       <tr key={r.key}>
                         <td><b>{r.title}</b></td>
                         <td>{r.client}</td>
                         <td className="c">{age(r) === null ? "—" : `${age(r)} days`}</td>
                         <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
+                        <td>{reason(r)}</td>
                       </tr>
                     ))}
                   </tbody>
