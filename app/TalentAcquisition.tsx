@@ -98,6 +98,14 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
       </div>
 
       <main className="ta">
+        <nav className="ta-nav" aria-label="Sections">
+          {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && <a href="#attention">Needs attention</a>}
+          <a href="#roles">Active roles &amp; pipeline</a>
+          <a href="#momentum">Hiring momentum</a>
+          <a href="#quarters">Roles by quarter</a>
+          <a href="#clients">Demand by client</a>
+          {data.hires && <a href="#hires">Hires</a>}
+        </nav>
         <div className="ta-stats">
           <div className="ta-stat"><b>{totals.hires}</b><span>Hires since January</span></div>
           <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
@@ -106,7 +114,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
         </div>
 
         {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && (
-          <div className="ta-block">
+          <div className="ta-block" id="attention">
             <div className="ta-sec"><h2>Needs attention</h2><p>Roles open 30 days or more, and roles open 2 weeks or more with no submittal yet.</p></div>
             <section className="chart-card">
               <div className="ta-scroll">
@@ -129,7 +137,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </div>
         )}
 
-        <div className="ta-block">
+        <div className="ta-block" id="roles">
           <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are in the pipeline.</p></div>
           <details className="ta-details ta-active"><summary>Show the {active.length} active roles</summary>
           <section className="chart-card">
@@ -190,7 +198,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </details>
         </div>
 
-        <div className="ta-block">
+        <div className="ta-block" id="momentum">
           <div className="ta-sec"><h2>Hiring momentum</h2><p>People hired each month this year.</p></div>
           <section className="chart-card">
             <h3>Hires by month <span className="chart-total">{totals.hires} in total</span></h3>
@@ -219,7 +227,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </section>
         </div>
 
-        <div className="ta-block">
+        <div className="ta-block" id="quarters">
           <div className="ta-sec"><h2>Roles by quarter</h2><p>Roles grouped by the quarter they were opened, and how each one ended up so far.</p></div>
           <section className="chart-card">
             <div className="ta-scroll">
@@ -244,7 +252,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </section>
         </div>
 
-        <div className="ta-block">
+        <div className="ta-block" id="clients">
           <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Click a client to see its roles with opening and closing dates. A role without a closing date keeps counting days as open until the sheet is edited.</p></div>
           <div className="ta-grid">
             {data.clientHistory.map((g) => (
@@ -292,7 +300,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </div>
         </div>
 
-        <div className="ta-block">
+        <div className="ta-block" id="hires">
           <div className="ta-sec"><h2>Detail</h2><p>The full list of hires behind the numbers above.</p></div>
           {data.hires && (
             <details className="chart-card ta-details">

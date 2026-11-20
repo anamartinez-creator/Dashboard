@@ -732,3 +732,10 @@ h2.brief-title::before { display: none; }
 .ta-active-table .pill { font-size: 10.5px; padding: 2px 6px; }
 .ta-active-table .ta-n { min-width: 0; }
 @media (max-width: 900px) { .ta-active-table { table-layout: auto; min-width: 820px; } }
+
+.ta-nav { position: sticky; top: 0; z-index: 20; display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 0; margin-bottom: -16px; background: var(--bg, #f4f7fa); border-bottom: 1px solid var(--line, #e3e8ee); }
+.ta-nav a { padding: 6px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line, #d9e0e7); color: var(--blue); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.ta-nav a:hover { background: var(--blue); color: #fff; }
+.ta-block[id] { scroll-margin-top: 64px; }
+html { scroll-behavior: smooth; }
+@media (max-width: 700px) { .ta-nav { flex-wrap: nowrap; overflow-x: auto; } }
