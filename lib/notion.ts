@@ -429,11 +429,17 @@ export async function loadCustomerSuccess() {
 // --- Hires pending to start (for Talent Acquisition) -------------------------
 // People already hired whose Start Date in the tracker is still in the future. Only client, role and
 // start date and name leave the server: no rates or salaries.
+import { MANUAL_STARTS } from "./manual-starts";
 export type PendingStart = { name: string; client: string; role: string; startDate: string; daysUntil: number };
 export async function loadPendingStarts(today: string): Promise<PendingStart[]> {
   const pages = await queryAll(DATA_SOURCES.engineers);
-  return mapEngineers(pages, today)
+  const fromNotion = mapEngineers(pages, today)
     .filter((e) => e.startDate && e.startDate > today && e.status !== "Terminated")
-    .map((e) => ({ name: e.name, client: e.clients.join(", ") || "—", role: e.role || "—", startDate: e.startDate as string, daysUntil: daysBetween(today, e.startDate as string) }))
+    .map((e) => ({ name: e.name, client: e.clients.join(", ") || "—", role: e.role || "—", startDate: e.startDate as string, daysUntil: daysBetween(today, e.startDate as string) }));
+  // Manual entries (lib/manual-starts.ts), skipping anyone already in Notion
+  const first = (n: string) => n.trim().toLowerCase().split(/\s+/)[0];
+  const manual = MANUAL_STARTS.filter((m) => m.startDate > today && !fromNotion.some((n) => first(n.name) === first(m.name) && sameClient(n.client, m.client)))
+    .map((m) => ({ ...m, daysUntil: daysBetween(today, m.startDate) }));
+  return [...fromNotion, ...manual]
     .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.client.localeCompare(b.client));
 }
