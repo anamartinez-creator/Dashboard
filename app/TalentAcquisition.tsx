@@ -333,31 +333,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
         </div>
 
           </>) },
-          ...(data.hires ? [{ id: "hires", label: "Hires", node: (<>
-        <div className="ta-block" id="hires">
-          <div className="ta-sec"><h2>Detail</h2><p>The full list of hires behind the numbers above.</p></div>
-          {data.hires && (
-            <details className="chart-card ta-details">
-              <summary>Hires since January ({data.hires.length})</summary>
-              <div className="ta-scroll ta-tall">
-                <table className="ta-table">
-                  <thead><tr><th>Hire date</th><th>Client</th><th>Role</th></tr></thead>
-                  <tbody>
-                    {data.hires.map((h, i) => (
-                      <tr key={i}>
-                        <td>{new Date(h.date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</td>
-                        <td>{h.client === "Staff" ? "Puzzle (staff)" : h.client}</td>
-                        <td>{h.role}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          )}
-        </div>
-
-          </>) }] : []),
         ]}
       />
     </>
