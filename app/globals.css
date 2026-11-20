@@ -861,3 +861,17 @@ html { scroll-behavior: smooth; }
 .ta-bento .bt-hires span { font-size: 12px; margin-top: 4px; font-weight: 400; }
 .ta-bento .bt-roles { grid-column: span 1; }
 .ta-bento .bt-pending { grid-column: span 2; }
+
+/* Clean row: 4 equal cards across the hero (replaces the bento) */
+.ta-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; max-width: none; grid-auto-rows: auto; align-items: start; }
+.ta-row .ta-card { border-radius: 14px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.12); padding: 16px 20px; grid-column: auto; grid-row: auto; display: block; }
+.ta-row .ta-card b { font-size: 34px; letter-spacing: normal; line-height: 1; }
+.ta-row .ta-card span { margin-top: 8px; font-size: 13px; font-weight: 400; opacity: .92; }
+.ta-row .ta-card small { margin-top: 3px; font-size: 12px; opacity: .72; }
+.ta-row .bt-hires { border-top: 3px solid var(--green, #5a9a1f); }
+.ta-row .ta-card-open { padding: 0; }
+.ta-row .ta-card-open > summary { padding: 16px 20px; }
+.ta-row .ta-card-open[open] { grid-column: 1 / -1; }
+.ta-row .ta-pend-list { padding: 2px 20px 14px; }
+@media (max-width: 900px) { .ta-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .ta-row { grid-template-columns: 1fr; } }

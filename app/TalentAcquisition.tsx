@@ -127,7 +127,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
               <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
-              <div className="ta-cards ta-bento">
+              <div className="ta-cards ta-row">
                 {weekCards.map((c) => {
                   const rows: { a: string; b: string; c: string }[] =
                     c.label === "Pending to start" && pending
