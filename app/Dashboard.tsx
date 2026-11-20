@@ -120,7 +120,7 @@ export default function Dashboard({ title = "Software Service Delivery Dashboard
       const live = card ? clientNotes?.[card.id] : undefined;
       const m =
         live && (!manual || live.date >= manual.date)
-          ? { client: h.name, date: live.date, source: "Notion", title: `${h.name}: latest comment in tracker`, url: card?.url ?? null, notes: { comment: live.comment } }
+          ? { client: h.name, date: live.date, source: "Notion", title: `${h.name}: client notes in tracker`, url: card?.url ?? null, notes: { comment: live.comment } }
           : manual;
       return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key), pilotInfo: pilotClients.find((x) => x.h.key === h.key) ?? null };
     });
@@ -277,7 +277,7 @@ export default function Dashboard({ title = "Software Service Delivery Dashboard
               <h2 className="clist-title">Active Clients</h2>
               <div className="clist">
                 <div className="cl-head" aria-hidden="true">
-                  <span /><span>Client</span><span>{contacts ? "Last contact" : "Team"}</span><span>{contacts ? "Latest comment" : "Status"}</span><span />
+                  <span /><span>Client</span><span>{contacts ? "Last contact" : "Team"}</span><span>{contacts ? "Client notes" : "Status"}</span><span />
                 </div>
                 {(() => {
                   const groups: { key: string; label: string; rows: typeof mapRows }[] = [
@@ -364,7 +364,7 @@ export default function Dashboard({ title = "Software Service Delivery Dashboard
                   {openRow.pilotInfo && <p className="drawer-line"><span>Pilot period</span>{range(openRow.pilotInfo.start, openRow.pilotInfo.end)}</p>}
                   {openRow.m && <p className="drawer-line"><span>Last contact</span>{fmtDate(openRow.m.date)}</p>}
                   {openRow.m?.notes && (
-                    <div className="note"><span className="note-head">Latest comment · {fmtDate(openRow.m.date)}</span><p>{openRow.m.notes.comment}</p></div>
+                    <div className="note"><span className="note-head">Client notes · {fmtDate(openRow.m.date)}</span><p>{openRow.m.notes.comment}</p></div>
                   )}
                   {openRow.h.reasons.some((x) => x.level !== "info") && (
                     <>
