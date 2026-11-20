@@ -1,5 +1,5 @@
 import AutoRefresh from "./AutoRefresh";
-import { titleMatch, type AshbyData, type AshbyRole } from "@/lib/ashby";
+import { STAGES, titleMatch, type AshbyData, type AshbyRole } from "@/lib/ashby";
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
 
@@ -112,6 +112,27 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                 </table>
               </div>
             </section>
+          </div>
+        )}
+
+        {ashby && (
+          <div className="ta-block">
+            <div className="ta-sec"><h2>Ashby pipeline</h2><p>Candidates in each stage, for every job open in Ashby.</p></div>
+            <div className="ta-pipes">
+              {[{ id: "all", title: "All open jobs", stages: ashby.stages, all: STAGES.reduce((n, k) => n + ashby.stages[k], 0) }, ...ashby.roles.map((j) => ({ id: j.id, title: j.title, stages: j.stages, all: j.all }))].map((j) => (
+                <section className="chart-card ta-pipe" key={j.id}>
+                  <h3>{j.title} <span className="chart-total">{j.all} {j.all === 1 ? "candidate" : "candidates"}</span></h3>
+                  <div className="ta-stages">
+                    {STAGES.map((n) => (
+                      <div className={`ta-stage${j.stages[n] ? "" : " is-0"}`} key={n}>
+                        <b>{j.stages[n]}</b>
+                        <span>{n}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
         )}
 

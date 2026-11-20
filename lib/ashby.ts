@@ -1,8 +1,9 @@
 // Candidates in process, read from Ashby (read-only). Needs ASHBY_API_KEY in Vercel.
 // Counts only three stages of each open job: SDM interview, Submitted to the client, Client interview.
 
-export type AshbyRole = { id: string; title: string; opened: string | null; location: string | null; sdm: number; submitted: number; client: number; total: number };
-export type AshbyData = { roles: AshbyRole[]; totals: { sdm: number; submitted: number; client: number; total: number } };
+export type AshbyRole = { id: string; title: string; opened: string | null; location: string | null; sdm: number; submitted: number; client: number; total: number; stages: Record<string, number>; all: number };
+export const STAGES = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Preparing Puzzle Profile", "Ready to Submit", "Submitted to the client", "Client initial Interview", "Client Assessment", "2nd Client Interview", "Waiting for Final Feedback", "Offer"];
+export type AshbyData = { stages: Record<string, number>; roles: AshbyRole[]; totals: { sdm: number; submitted: number; client: number; total: number } };
 
 const BASE = "https://api.ashbyhq.com";
 
@@ -49,9 +50,12 @@ export async function loadAshby(): Promise<AshbyData | null> {
   const roles = await Promise.all(
     jobs.map(async (j) => {
       const apps = await all<{ currentInterviewStage?: { title?: string } | null }>(key, "application.list", { jobId: j.id, status: "Active" });
-      const r: AshbyRole = { id: j.id, title: j.title, opened: j.openedAt ? j.openedAt.slice(0, 10) : null, location: j.location?.name ?? null, sdm: 0, submitted: 0, client: 0, total: 0 };
+      const r: AshbyRole = { id: j.id, title: j.title, opened: j.openedAt ? j.openedAt.slice(0, 10) : null, location: j.location?.name ?? null, sdm: 0, submitted: 0, client: 0, total: 0, stages: Object.fromEntries(STAGES.map((n) => [n, 0])), all: 0 };
       for (const a of apps) {
-        const k = stageKind(a.currentInterviewStage?.title ?? "");
+        const title = (a.currentInterviewStage?.title ?? "").trim();
+        const name = STAGES.find((n) => n.toLowerCase() === title.toLowerCase());
+        if (name) { r.stages[name] += 1; r.all += 1; }
+        const k = stageKind(title);
         if (k) { r[k] += 1; r.total += 1; }
       }
       return r;
@@ -59,7 +63,8 @@ export async function loadAshby(): Promise<AshbyData | null> {
   );
   roles.sort((a, b) => b.total - a.total || a.title.localeCompare(b.title));
   const sum = (f: (r: AshbyRole) => number) => roles.reduce((n, r) => n + f(r), 0);
-  return { roles, totals: { sdm: sum((r) => r.sdm), submitted: sum((r) => r.submitted), client: sum((r) => r.client), total: sum((r) => r.total) } };
+  const stages: Record<string, number> = Object.fromEntries(STAGES.map((n) => [n, roles.reduce((c, r) => c + r.stages[n], 0)]));
+  return { stages, roles, totals: { sdm: sum((r) => r.sdm), submitted: sum((r) => r.submitted), client: sum((r) => r.client), total: sum((r) => r.total) } };
 }
 
 // Role titles in Ashby carry extras ("(PZ-25)", "- Remote LATAM", "Senior ..."); compare them as sets of words.

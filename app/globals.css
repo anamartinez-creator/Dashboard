@@ -705,3 +705,10 @@ h2.brief-title::before { display: none; }
 .ta-trend-table { margin: 4px 0 10px 14px; width: calc(100% - 14px); font-size: 12.5px; }
 .ta-trend-table th, .ta-trend-table td { padding: 5px 4px; }
 .ta-trend-table td:nth-child(n+2) { white-space: nowrap; }
+
+.ta-pipes { display: grid; gap: 14px; }
+.ta-stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.ta-stage { background: var(--tint); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.ta-stage b { font-size: 20px; color: var(--blue); }
+.ta-stage span { font-size: 11.5px; color: var(--muted); line-height: 1.25; }
+.ta-stage.is-0 b { color: #b5bfca; }
