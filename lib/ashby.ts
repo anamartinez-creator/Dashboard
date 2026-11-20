@@ -87,12 +87,23 @@ export function titleMatch(sheetTitle: string, ashbyTitle: string): 0 | 1 | 2 | 
   const a = titleTokens(sheetTitle);
   const b = titleTokens(ashbyTitle);
   if (!a.length || !b.length) return 0;
-  const sa = new Set(a);
-  const sb = new Set(b);
-  const aInB = a.every((w) => sb.has(w));
-  const bInA = b.every((w) => sa.has(w));
+  // Words match when equal, or one typo apart for longer words ("Recuiter" / "Recruiter")
+  const near = (x: string, y: string) => {
+    if (x === y) return true;
+    if (Math.min(x.length, y.length) < 5 || Math.abs(x.length - y.length) > 1) return false;
+    let i = 0, j = 0, edits = 0;
+    while (i < x.length && j < y.length) {
+      if (x[i] === y[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (x.length > y.length) i++; else if (y.length > x.length) j++; else { i++; j++; }
+    }
+    return edits + (x.length - i) + (y.length - j) <= 1;
+  };
+  const has = (set: string[], w: string) => set.some((v) => near(v, w));
+  const aInB = a.every((w) => has(b, w));
+  const bInA = b.every((w) => has(a, w));
   if (aInB && bInA) return 2;
-  const shorter = Math.min(sa.size, sb.size);
+  const shorter = Math.min(a.length, b.length);
   if ((aInB || bInA) && shorter >= 2) return 1;
   return 0;
 }
