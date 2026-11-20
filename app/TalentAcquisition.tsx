@@ -29,9 +29,22 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
   const best = monthly.reduce((a, m) => (m.hires > a.hires ? m : a), { month: "", hires: 0 });
 
   // Three plain sentences for the top of the page
+  const activePositions = active.reduce((n, r) => n + r.positions, 0);
+  const attention = aging.length + onHold.length + noSubmit.length;
+  const oldest = [...active].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0))[0];
+  const withClientStages = ["Submitted to the client", "Client initial Interview", "Client Assessment", "2nd Client Interview", "Waiting for Final Feedback"];
+  const beforeSubmit = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Preparing Puzzle Profile", "Ready to Submit"];
+  const sumStages = (names: string[]) => (ashby ? names.reduce((n, k) => n + (ashby.stages[k] ?? 0), 0) : 0);
   const summary = [
-    `${plural(totals.hires, "person", "people")} hired since January${best.hires ? `; ${best.month} was the strongest month with ${best.hires}` : ""}.`,
-  ];
+    active.length === 0
+      ? "No roles are being hired for right now."
+      : `${plural(active.length, "role is", "roles are")} being hired for right now (${plural(activePositions, "position", "positions")}).`,
+    attention === 0
+      ? "Nothing needs attention today."
+      : `${attention} ${attention === 1 ? "needs" : "need"} attention: ${[aging.length ? `${aging.length} open ${STALE_DAYS} days or more` : "", noSubmit.length ? `${noSubmit.length} with no submittal after 2 weeks` : "", onHold.length ? `${onHold.length} on hold` : ""].filter(Boolean).join(", ")}.`,
+    ashby ? `Candidates in process: ${sumStages(beforeSubmit)} with Puzzle before submission, ${sumStages(withClientStages)} with the client${ashby.stages.Offer ? `, ${ashby.stages.Offer} at offer` : ""}.` : "",
+    oldest && age(oldest) !== null ? `Longest open: ${oldest.title} (${oldest.client}), ${age(oldest)} days.` : "",
+  ].filter(Boolean);
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
   // Quarter-over-quarter hires (current quarter is partial)
@@ -95,6 +108,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
             <div className="brief-main">
               <p className="brief-eyebrow">Executive summary</p>
               <h2 className="brief-title">{summary[0]}</h2>
+              <p className="ta-sum">{summary.slice(1).map((t, i) => <span key={i}>{t}<br /></span>)}</p>
             </div>
           </div>
         </div>
