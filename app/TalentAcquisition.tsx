@@ -121,7 +121,7 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
         <div className="hero-in">
           <div className="hero-bar">
             <h1 className="hero-title">Talent Acquisition</h1>
-            <p className="owner">Source: Active Job Openings and Bonuses sheets<br />Latest tab: {data.latestTab}</p>
+            <p className="owner">Talent Manager: <b>Iveth Torres</b></p>
           </div>
           <div className={`brief ${briefTone}`}>
             <div className="brief-main">
