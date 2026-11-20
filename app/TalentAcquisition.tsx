@@ -11,7 +11,7 @@ const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const STALE_DAYS = 30;
 const STATUS_SHORT: Record<string, string> = { "Pend Functional Spec": "Pending spec", "Sales/In progress": "In sales" };
-const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal assessment", "Service Delivery Manager Interview": "SDM interview", "Preparing Puzzle Profile": "Profile prep", "Ready to Submit": "Ready to submit", "Submitted to the client": "Submitted", "Client initial Interview": "Client interview", "Client Assessment": "Client assessment", "2nd Client Interview": "2nd interview", "Waiting for Final Feedback": "Final feedback", "Offer": "Offer" };
+const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal assessment", "Service Delivery Manager Interview": "SDM interview", "Ready to Submit": "Ready to submit", "Submitted to the client": "Submitted", "Client initial Interview": "Client interview", "Client Assessment": "Client assessment", "2nd Client Interview": "2nd interview", "Waiting for Final Feedback": "Final feedback", "Offer": "Offer" };
 
 export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
   const { totals, open, openRoles, monthly, today } = data;
@@ -34,7 +34,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
   const attention = aging.length + onHold.length + noSubmit.length;
   const oldest = [...active].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0))[0];
   const withClientStages = ["Submitted to the client", "Client initial Interview", "Client Assessment", "2nd Client Interview", "Waiting for Final Feedback"];
-  const beforeSubmit = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Preparing Puzzle Profile", "Ready to Submit"];
+  const beforeSubmit = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Ready to Submit"];
   const sumStages = (names: string[]) => (ashby ? names.reduce((n, k) => n + (ashby.stages[k] ?? 0), 0) : 0);
   const summary = [
     active.length === 0
@@ -136,21 +136,21 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                   {ashby && (
                     <colgroup>
                       <col style={{ width: "16%" }} /><col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} /><col style={{ width: "11%" }} />
-                      {STAGES.map((n) => <col key={n} style={{ width: "5.2%" }} />)}
+                      {STAGES.map((n) => <col key={n} style={{ width: "5.8%" }} />)}
                     </colgroup>
                   )}
                   <thead>
                     {ashby && (
                       <tr className="ta-grp">
                         <th colSpan={5} />
-                        <th colSpan={4} className="g1">With Puzzle</th>
+                        <th colSpan={3} className="g1">With Puzzle</th>
                         <th colSpan={5} className="g2">With the client</th>
                         <th className="g3" />
                       </tr>
                     )}
                     <tr><th>Role</th><th>Client</th><th className="c">Open for</th><th className="c">Openings</th><th>Status</th>
                       {ashby
-                        ? STAGES.map((n, k) => <th className={`c ${k < 4 ? "g1" : k < 9 ? "g2" : "g3"}${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n} title={n}>{SHORT[n] ?? n}</th>)
+                        ? STAGES.map((n, k) => <th className={`c ${k < 3 ? "g1" : k < 8 ? "g2" : "g3"}${k === 0 || k === 3 || k === 8 ? " gl" : ""}`} key={n} title={n}>{SHORT[n] ?? n}</th>)
                         : <><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></>}
                     </tr>
                   </thead>
@@ -166,7 +166,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                           const m = ashbyFor.get(r.key);
                           if (!m) return <td className="c gl ta-none" colSpan={STAGES.length} title="No job with this title in Ashby">Not in Ashby</td>;
                           return STAGES.map((n, k) => (
-                            <td className={`c${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n} title={k === 0 && m.shared > 1 ? `Shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title` : undefined}>
+                            <td className={`c${k === 0 || k === 3 || k === 8 ? " gl" : ""}`} key={n} title={k === 0 && m.shared > 1 ? `Shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title` : undefined}>
                               <span className={`ta-n${m.job.stages[n] ? "" : " is-0"}`}>{m.job.stages[n]}</span>
                             </td>
                           ));
@@ -186,7 +186,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                         <td className="c">—</td>
                         <td className="c">—</td>
                         <td><span className="pill warn" title="Open in Ashby, but no active role with this title in the sheet">Ashby only</span></td>
-                        {STAGES.map((n, k) => <td className={`c${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
+                        {STAGES.map((n, k) => <td className={`c${k === 0 || k === 3 || k === 8 ? " gl" : ""}`} key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
                       </tr>
                     ))}
                   </tbody>

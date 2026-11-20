@@ -2,7 +2,7 @@
 // Counts only three stages of each open job: SDM interview, Submitted to the client, Client interview.
 
 export type AshbyRole = { id: string; title: string; opened: string | null; location: string | null; sdm: number; submitted: number; client: number; total: number; stages: Record<string, number>; all: number };
-export const STAGES = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Preparing Puzzle Profile", "Ready to Submit", "Submitted to the client", "Client initial Interview", "Client Assessment", "2nd Client Interview", "Waiting for Final Feedback", "Offer"];
+export const STAGES = ["Puzzle Internal Assessment", "Service Delivery Manager Interview", "Ready to Submit", "Submitted to the client", "Client initial Interview", "Client Assessment", "2nd Client Interview", "Waiting for Final Feedback", "Offer"];
 export type AshbyData = { stages: Record<string, number>; roles: AshbyRole[]; totals: { sdm: number; submitted: number; client: number; total: number } };
 
 const BASE = "https://api.ashbyhq.com";
