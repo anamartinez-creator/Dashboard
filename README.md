@@ -1,8 +1,14 @@
-# Health del delivery SDM
+# Puzzle Operations
 
-Dashboard de health del Master SDM Tracker de Notion: semáforo y score por cliente, clientes en periodo de piloto (inicio y fin), salud del equipo, personas que requieren seguimiento. Muestra solo el equipo de un SDM (Ana Martinez por defecto) y deja fuera a Customer Success. Es de acceso abierto: cualquiera con el link puede verlo (no se indexa en buscadores). Para volver a pedir contraseña, ver "Contraseña" más abajo.
+Dashboard de operaciones de Puzzle con tres módulos en la barra lateral. Es de acceso abierto: cualquiera con el link puede verlo (no se indexa en buscadores). Para pedir contraseña, ver "Contraseña" más abajo.
 
-Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`).
+| Módulo | Ruta | Fuente de datos | Qué muestra |
+| --- | --- | --- | --- |
+| **Service Delivery** | `/` | Notion (Master SDM Tracker) | Semáforo y score por cliente, pilotos, salud del equipo, personas que requieren seguimiento. Solo el equipo de un SDM (Ana Martinez por defecto); deja fuera a Customer Success. |
+| **Customer Success** | `/customer-success` | Notion (mismo tracker) | La misma vista para los clientes de Customer Success. |
+| **Talent Acquisition** | `/talent-acquisition` | Google Sheets (Active Job Openings y Bonuses) y, opcional, Ashby | Roles activos y su pipeline, lo que requiere atención, contrataciones por mes y quarter, demanda por cliente. |
+
+Repositorio: `anamartinez-creator/Dashboard` (el proyecto de Vercel se llama `sdm-status`). Producción: `puzzle-operations.vercel.app`.
 
 ## Qué necesitas
 
@@ -22,16 +28,22 @@ Repositorio: `anamartinez-creator/Dashboard` (el proyecto se llama `sdm-status`)
 
 3. **Importarlo en Vercel**
    - En Vercel: **Add New → Project**, elige el repo. Vercel detecta Next.js solo.
-   - En **Settings → Environment Variables**, agrega las dos variables (para Production, Preview y Development):
+   - En **Settings → Environment Variables**, agrega las variables (para Production, y si quieres también Preview y Development):
 
-     | Variable | Valor |
-     | --- | --- |
-     | `NOTION_TOKEN` | el token `ntn_...` de la integración |
-     | `DASHBOARD_PASSWORD` | la contraseña que quieras compartir |
+     | Variable | Módulo | Obligatoria | Valor |
+     | --- | --- | --- | --- |
+     | `NOTION_TOKEN` | Service Delivery y Customer Success | Sí | el token `ntn_...` de la integración |
+     | `GOOGLE_SERVICE_ACCOUNT_JSON` | Talent Acquisition | Sí | el JSON completo de la cuenta de servicio de Google (solo lectura) |
+     | `HIRING_SHEET_ID` | Talent Acquisition | Sí | ID de la hoja "Active Job Openings" |
+     | `BONUSES_SHEET_ID` | Talent Acquisition | No | ID de la hoja "Bonuses - Hires and Referrals" (ya hay un valor por defecto en `lib/hiring.ts`) |
+     | `ASHBY_API_KEY` | Talent Acquisition | No | llave de Ashby de solo lectura (Candidates y Jobs); sin ella la página funciona igual, sin las etapas de Ashby |
+     | `DASHBOARD_PASSWORD`, `REQUIRE_PASSWORD` | Todos | No | solo si quieres pedir contraseña |
+     | `NOTION_WEBHOOK_SECRET` | Service Delivery | No | ver "Actualización instantánea con webhook" |
+     | `SDM_TEAM`, `SDM_OWNER` | Service Delivery | No | ver "Alcance" |
 
    - Dale **Deploy**. Si agregas o cambias variables después, haz **Redeploy**: solo aplican a deploys nuevos.
 
-Al abrir el link, el dashboard se ve directamente, sin usuario ni contraseña.
+Al abrir el link, el dashboard se ve directamente, sin usuario ni contraseña. Las hojas de Google deben compartirse (Viewer) con el correo de la cuenta de servicio.
 
 **Contraseña (opcional).** Para volver a protegerlo, agrega en Vercel `REQUIRE_PASSWORD=true` y `DASHBOARD_PASSWORD` y haz Redeploy; el navegador pedirá usuario (cualquiera) y contraseña.
 
@@ -51,12 +63,36 @@ El semáforo de cada cliente es el peor de sus motivos. Las reglas están en `li
 
 El score (0 a 100) empieza en 100 y resta puntos por cada motivo; sirve para ordenar dentro de cada color. Los clientes se relacionan con personas y SOWs por nombre aunque se escriban distinto en Notion ("Proline Eng" y "Proline Engineering", "Vertex" y "VertexOne"). Los pilotos solo se evalúan para personas en New Hire o con `Pilot End` lleno.
 
-## Cómo funciona
+## Cómo funciona (Service Delivery y Customer Success)
 
 - Los datos se leen de Notion en el servidor y se refrescan cada minuto como máximo. La página abierta se actualiza sola cada minuto, y el botón **Actualizar ahora** (al pie) fuerza una lectura nueva de Notion. Lo que cambies en el tracker aparece en el dashboard en ~1 minuto, sin redeploy.
 - Al navegador solo llegan los campos que muestra la página. **Salary Rate, Equipment, la columna Notes y las notas del SOW Tracker nunca salen del servidor.**
 - Excepción: para las personas que requieren seguimiento se muestra el comentario más reciente de la tabla *1:1 Notes* de su página en Notion (fecha, Health y Comments). El servidor omite las líneas cuya etiqueta sea Wellbeing, Health, Announcements, Family, Personal o Medical. Esa regla solo detecta líneas con etiqueta; si alguien escribe algo personal en un párrafo sin etiqueta, saldrá. Con el acceso abierto, cualquiera que tenga el link ve estos comentarios.
 - La página no aparece en buscadores (`noindex`).
+
+## Talent Acquisition
+
+Página con pestañas: **Active roles & pipeline** (la primera), **Needs attention**, **Hiring momentum** y **Demand by client**. Los datos se leen en el servidor con la API de Google Sheets en modo solo lectura (cuenta de servicio) y se refrescan cada minuto, igual que el botón **Refresh now** del pie.
+
+**Fuentes**
+
+- **Hoja Active Job Openings** (pestañas mensuales `Jan 2026` … `Nov 2026`): roles, clientes, LOB, estados, fechas de apertura y de cierre (columna L, Closed Date), candidatos internos, enviados y con el cliente. Es la fuente de verdad de los roles.
+- **Hoja Bonuses - Hires and Referrals** (pestañas `Q1 2026` … `Q4 2026`, tabla "Talent Acquisition Hire Bonus"): fecha, cliente y rol de cada contratación. Define el conteo de hires y las fechas de cierre de los roles Filled. Si no se puede leer, la página usa solo la hoja de roles.
+- **Ashby** (opcional): solo para la tabla de Active roles. Cuenta los candidatos de cada job abierto por etapa. Cada rol de la hoja se liga a su job por título (se ignoran detalles como `(PZ-25)`, `Remote LATAM` y una letra de diferencia; si ambos llevan código PZ, ese manda). Si dos roles tienen el mismo título, el mismo número aparece en los dos con la marca "shared". Los jobs de Ashby sin rol activo en la hoja aparecen al final como "Ashby only".
+
+**Reglas**
+
+- Un rol se cuenta una vez, desde su última pestaña. Solo cuentan los roles abiertos desde enero de 2026.
+- Si un rol desaparece de la pestaña más reciente sin estado final, la página lo marca como **Dropped**. Hay que cerrarlo en la hoja (Cancelled, Lost o Filled).
+- Fill rate = roles Filled entre los que cerraron; los Cancelled no cuentan. Los Lost sí.
+- Días abiertos = de la apertura al cierre. Si no hay fecha de cierre real (la celda sigue en `=today()`), cuenta hasta hoy y se marca "counting".
+- **Needs attention**: roles abiertos 30 días o más, y roles abiertos 14 días o más sin ningún submittal. Los On Hold solo entran con 30 días o más.
+- Los clientes con nombres distintos se unen en `lib/hiring.ts` (`CLIENT_ALIASES`, por ejemplo Improvifi → Improvify, Dr. Taz → Hol+).
+- LOB: lo que empieza con "Engineer" va a Engineering, "Customer…" a Customer Success y el resto a "Staff & other".
+
+**Confidencialidad.** Billing rates, salarios, nombres de personas y montos de bonos no se cargan en la página: el código solo lee las columnas que muestra. Como el sitio es abierto, mantén así esa regla.
+
+**Hoja de roles: cómo mantenerla.** Escribe la fecha de cierre (columna L) cuando un rol se llene, cancele o pierda. Usa los mismos estados (Active, Pend Functional Spec, Pending SOW, MSA sent, Sales/In progress, On Hold, Filled, Cancelled, Lost). Un título con el código del job de Ashby (por ejemplo `PZ 29`) hace el cruce más seguro.
 
 ## Actualización instantánea con webhook (opcional)
 
@@ -86,16 +122,24 @@ Para comprobar que compila antes de subir: `npm run build`.
 - **El deploy falla por "vulnerable version of Next.js"**: actualiza `next` y `react` a una versión con parche (ver `package.json`), haz commit y push, y redeploy sin build cache.
 - **Falta `NOTION_TOKEN` o `DASHBOARD_PASSWORD`**: agrégalas en Vercel (paso 3) y haz Redeploy.
 - **La página sale vacía o con error de Notion (401/404)**: la integración no está conectada a la página Master SDM Tracker (`•••` → **Connections**), o el token es incorrecto.
+- **Talent Acquisition dice "Almost ready" o no carga**: falta `GOOGLE_SERVICE_ACCOUNT_JSON` o `HIRING_SHEET_ID`, o la hoja no está compartida con el correo de la cuenta de servicio.
+- **Talent Acquisition no muestra las etapas de Ashby**: falta `ASHBY_API_KEY`, o la llave no tiene permiso de lectura sobre Jobs y Candidates. Después de agregarla hay que hacer Redeploy.
+- **Un rol aparece como Dropped o con días que siguen contando**: el rol desapareció de la hoja sin estado final o no tiene fecha de cierre; ajusta la hoja.
 - **Falta una columna o dato**: si renombraron una propiedad en Notion, ajústala en `lib/notion.ts`.
 
 ## Archivos
 
 - `lib/notion.ts`: lee Notion y decide qué campos se usan. Si renombran una propiedad en Notion, se ajusta aquí.
 - `lib/health.ts`: reglas del semáforo y del score.
-- `app/Dashboard.tsx`: la página con las tablas y las gráficas.
-- `middleware.ts`: la contraseña.
+- `lib/hiring.ts`: lee las hojas de Google y arma los datos de Talent Acquisition (roles, estados, hires, historial por cliente).
+- `lib/ashby.ts`: candidatos por etapa de Ashby y el cruce por título con la hoja.
+- `app/Dashboard.tsx`: Service Delivery y Customer Success.
+- `app/TalentAcquisition.tsx` y `app/TaTabs.tsx`: la página de Talent Acquisition y sus pestañas.
+- `app/AutoRefresh.tsx`: refresco automático y botón de actualizar.
+- `app/Sidebar.tsx`: la barra lateral con los módulos.
+- `middleware.ts`: la contraseña (opcional).
 - `app/api/notion-webhook/route.ts`: recibe los avisos de Notion y refresca los datos.
-- `app/api/refresh/route.ts`: el botón "Actualizar ahora".
+- `app/api/refresh/route.ts`: el botón de actualizar (limpia la caché de Notion o de las hojas de Google, según el módulo).
 - `.env.example`: plantilla de las variables de entorno.
 
 ## Client meetings (snapshot)
