@@ -38,6 +38,9 @@ const YEAR = 2026;
 
 const clean = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
 const normClient = (s: string) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+// Client names that are typed two ways in the sheets. The key is the normalized misspelling, the value is the real name.
+const CLIENT_ALIASES: Record<string, string> = { improvifi: "Improvify" };
+const canonClient = (s: string) => CLIENT_ALIASES[normClient(s)] ?? s;
 const normTitle = (s: string) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, "");
 const toInt = (s: string) => {
   const n = parseInt(clean(s).replace(/[^0-9-]/g, ""), 10);
@@ -100,7 +103,7 @@ function parseTab(tab: Tab): Row[] {
   for (const r of tab.rows.slice(h + 1)) {
     if (clean(r[1]).toLowerCase() === "total") break;
     const title = clean(r[c.title]);
-    const client = clean(r[c.client]);
+    const client = canonClient(clean(r[c.client]));
     if (!title && !client) continue;
     out.push({
       title,
@@ -367,7 +370,7 @@ async function loadBonusHires(): Promise<Hire[] | null> {
       for (const r of rows.slice(h + 1)) {
         const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((r[0] ?? "").trim());
         if (!m) break;
-        out.push({ date: `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`, client: (r[2] ?? "").trim(), role: (r[3] ?? "").trim() });
+        out.push({ date: `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`, client: canonClient((r[2] ?? "").trim()), role: (r[3] ?? "").trim() });
       }
     }
     return out.length ? out : null;
