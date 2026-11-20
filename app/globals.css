@@ -667,3 +667,13 @@ h2.brief-title::before { display: none; }
   background: var(--blue); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
   white-space: nowrap; z-index: 20; box-shadow: 0 4px 14px rgba(0,64,108,.3); pointer-events: none;
 }
+/* Client rows that open into their role list */
+.ta-cl { border-radius: 8px; }
+.ta-cl > summary { list-style: none; cursor: pointer; border-radius: 8px; }
+.ta-cl > summary::-webkit-details-marker { display: none; }
+.ta-cl > summary:hover { background: var(--tint); }
+.ta-cl > summary .g-name::before { content: "\25B8"; display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
+.ta-cl[open] > summary .g-name::before { transform: rotate(90deg); }
+.ta-cl-table { margin: 6px 0 12px 14px; width: calc(100% - 14px); }
+.ta-cl-table th, .ta-cl-table td { padding: 6px 8px; }
+.ta-cl-table td:nth-child(n+4) { white-space: nowrap; }

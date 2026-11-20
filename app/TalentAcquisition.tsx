@@ -1,6 +1,7 @@
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
 
+const fmtDate = (iso: string) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
 const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`);
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
@@ -128,23 +129,39 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Engineering and Customer Success are shown separately.</p></div>
+          <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Click a client to see its roles with opening and closing dates.</p></div>
           <div className="ta-grid">
             {data.clientHistory.map((g) => (
               <section className="chart-card" key={g.group}>
                 <h3>{g.group} <span className="chart-total">{g.clients.reduce((n, c) => n + c.total, 0)} openings</span></h3>
                 {g.clients.map((c) => (
-                  <div className="ta-row" key={c.client}>
-                    <span className="g-name">{c.client}</span>
-                    <div className="ta-track ta-track-tip">
-                      {([[c.filled, "var(--ok)", "Filled"], [c.open, "var(--blue)", "Still open"], [c.cancelled, "var(--seg-muted)", "Cancelled"], [c.lost, "var(--bad)", "Lost"], [c.dropped, "#dfe4ea", "Dropped"]] as [number, string, string][])
-                        .filter(([n]) => n > 0)
-                        .map(([n, col, lab]) => (
-                          <div key={lab} className="ta-seg" tabIndex={0} data-tip={`${lab}: ${n} ${n === 1 ? "opening" : "openings"}`} style={{ width: `${(n / histMax) * 100}%`, background: col }} />
+                  <details className="ta-cl" key={c.client}>
+                    <summary className="ta-row">
+                      <span className="g-name">{c.client}</span>
+                      <div className="ta-track ta-track-tip">
+                        {([[c.filled, "var(--ok)", "Filled"], [c.open, "var(--blue)", "Still open"], [c.cancelled, "var(--seg-muted)", "Cancelled"], [c.lost, "var(--bad)", "Lost"], [c.dropped, "#dfe4ea", "Dropped"]] as [number, string, string][])
+                          .filter(([n]) => n > 0)
+                          .map(([n, col, lab]) => (
+                            <div key={lab} className="ta-seg" data-tip={`${lab}: ${n} ${n === 1 ? "opening" : "openings"}`} style={{ width: `${(n / histMax) * 100}%`, background: col }} />
+                          ))}
+                      </div>
+                      <span className="ta-val">{c.total}</span>
+                    </summary>
+                    <table className="ta-table ta-cl-table">
+                      <thead><tr><th>Role</th><th>Status</th><th className="c">Positions</th><th>Opened</th><th>Closed</th></tr></thead>
+                      <tbody>
+                        {c.roles.map((r, i) => (
+                          <tr key={i}>
+                            <td><b>{r.title}</b></td>
+                            <td><span className={`pill ${r.status === "Filled" ? "ok" : r.status === "Active" ? "ok" : r.status === "Cancelled" || r.status === "Lost" || r.status === "Dropped" ? "bad" : "warn"}`}>{r.status}</span></td>
+                            <td className="c">{r.positions}</td>
+                            <td>{r.opened ? fmtDate(r.opened) : "—"}</td>
+                            <td>{r.closed ? fmtDate(r.closed) : "—"}</td>
+                          </tr>
                         ))}
-                    </div>
-                    <span className="ta-val">{c.total}</span>
-                  </div>
+                      </tbody>
+                    </table>
+                  </details>
                 ))}
               </section>
             ))}
