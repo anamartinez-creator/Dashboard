@@ -39,7 +39,7 @@ const YEAR = 2026;
 const clean = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
 const normClient = (s: string) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, "");
 // Client names that are typed two ways in the sheets. The key is the normalized misspelling, the value is the real name.
-const CLIENT_ALIASES: Record<string, string> = { improvifi: "Improvify" };
+const CLIENT_ALIASES: Record<string, string> = { improvifi: "Improvify", drtaz: "Hol+", holplus: "Hol+", hol: "Hol+" };
 const canonClient = (s: string) => CLIENT_ALIASES[normClient(s)] ?? s;
 const normTitle = (s: string) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, "");
 const toInt = (s: string) => {
