@@ -384,5 +384,19 @@ export async function loadCustomerSuccess() {
     (a, b) => order(a.status) - order(b.status) || (a.clients[0] ?? "").localeCompare(b.clients[0] ?? "") || a.name.localeCompare(b.name)
   );
   const clients = mapClients(c).filter((x) => x.client && x.unit === "Customer Success");
-  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, clientNotes: {} as Record<string, ClientNote>, loadedAt: new Date().toISOString(), today: todayIso() };
+  // Every client comment of this week (Monday to Sunday), 4 clients at a time for Notion's rate limit
+  const today = todayIso();
+  const week = weekRange(today);
+  const weekUpdates: WeekUpdate[] = [];
+  for (let i = 0; i < clients.length; i += 4) {
+    await Promise.all(
+      clients.slice(i, i + 4).map(async (cl) => {
+        const rows = await fetchClientRows(cl.id);
+        for (const r of rows) if (r.date >= week.start && r.date <= week.end) weekUpdates.push({ clientId: cl.id, client: cl.client, url: cl.url, date: r.date, comment: r.comment });
+      })
+    );
+  }
+  weekUpdates.sort((a, b) => b.date.localeCompare(a.date) || a.client.localeCompare(b.client));
+
+  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, clientNotes: {} as Record<string, ClientNote>, weekUpdates, weekStart: week.start, weekEnd: week.end, loadedAt: new Date().toISOString(), today };
 }

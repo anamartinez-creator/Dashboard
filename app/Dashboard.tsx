@@ -67,7 +67,7 @@ export default function Dashboard({ title = "Software Development", contacts = t
   };
   useEffect(() => {
     const h = window.location.hash.slice(1);
-    if (h === "people" || (h === "week" && contacts && weekUpdates)) setTabState(h);
+    if (h === "people" || (h === "week" && weekUpdates)) setTabState(h);
   }, []);
 
   // Summary cards jump to their tab and section (client cards also set the color filter)
@@ -242,7 +242,7 @@ export default function Dashboard({ title = "Software Development", contacts = t
 
       <nav className="tabs" role="tablist" aria-label="Dashboard sections">
         <div className="tabs-in">
-          {([["overview", "Overview"], ...(contacts && weekUpdates ? [["week", "This Week"]] : []), ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
+          {([["overview", "Overview"], ...(weekUpdates ? [["week", "This Week"]] : []), ["people", "People"]] as [Tab, string][]).map(([t, label]) => (
             <button type="button" key={t} role="tab" aria-selected={tab === t} className={`tab${tab === t ? " on" : ""}`} onClick={() => setTab(t)}>{label}</button>
           ))}
         </div>
