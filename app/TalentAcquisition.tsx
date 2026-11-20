@@ -129,7 +129,27 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
               <p className="brief-eyebrow">This week · {fmtDate(wkStart).replace(/, \d{4}$/, "")} – {fmtDate(wkEnd).replace(/, \d{4}$/, "")}</p>
               <h2 className="brief-title">{summary[0]}</h2>
               <div className="ta-cards">
-                {weekCards.map((c) => (<div key={c.label} className="ta-card"><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>))}
+                {weekCards.map((c) =>
+                  c.label === "Pending to start" && pending && pending.length > 0 ? (
+                    <details key={c.label} className="ta-card ta-card-open">
+                      <summary>
+                        <b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}
+                        <em className="ta-card-hint">Click for details</em>
+                      </summary>
+                      <ul className="ta-pend-list">
+                        {pending.map((h, i) => (
+                          <li key={i}>
+                            <span className="pn">{h.name}</span>
+                            <span className="pr">{h.role} · {h.client}</span>
+                            <span className="pd">{fmtDate(h.startDate)} · {h.daysUntil === 1 ? "tomorrow" : `in ${h.daysUntil} days`}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : (
+                    <div key={c.label} className="ta-card"><b>{c.n}</b><span>{c.label}</span>{c.note && <small>{c.note}</small>}</div>
+                  )
+                )}
               </div>
             </div>
           </div>

@@ -809,3 +809,17 @@ html { scroll-behavior: smooth; }
 .t-h { background: #e3f4e6; color: #1f6b33; } .t-o { background: #e1effa; color: #0b5a8a; } .t-c { background: #fdeaea; color: #a02828; } .t-s { background: #e7e9fb; color: #3a3fa0; } .t-a { background: #fff2d6; color: #8a5e00; }
 .ta-wk-more { margin: 12px 0 0; font-size: 13px; color: #00406c; font-weight: 600; }
 .ta-wk-empty { margin: 0; font-size: 14px; color: #6b7a8c; }
+
+/* Pending to start: click for who and which day */
+.ta-card-open { padding: 0; }
+.ta-card-open > summary { list-style: none; cursor: pointer; padding: 20px 22px; display: block; }
+.ta-card-open > summary::-webkit-details-marker { display: none; }
+.ta-card-open > summary:hover { background: rgba(255,255,255,.08); border-radius: 14px; }
+.ta-card-hint { display: block; margin-top: 8px; font-size: 11px; font-style: normal; opacity: .65; }
+.ta-card-open[open] { grid-column: 1 / -1; }
+.ta-card-open[open] .ta-card-hint { display: none; }
+.ta-pend-list { list-style: none; margin: 0; padding: 4px 22px 18px; }
+.ta-pend-list li { display: grid; grid-template-columns: 1.2fr 1.6fr 1fr; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.2); font-size: 14px; }
+.ta-pend-list .pn { font-weight: 600; }
+.ta-pend-list .pr { opacity: .85; }
+.ta-pend-list .pd { text-align: right; opacity: .9; white-space: nowrap; }
