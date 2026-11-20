@@ -10,7 +10,7 @@ const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%
 const tone = (s: string) => (s === "Active" ? "ok" : s === "On Hold" ? "bad" : "warn");
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const STALE_DAYS = 30;
-const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal", "Service Delivery Manager Interview": "SDM", "Preparing Puzzle Profile": "Profile", "Ready to Submit": "Ready", "Submitted to the client": "Sent", "Client initial Interview": "Client 1", "Client Assessment": "Assess.", "2nd Client Interview": "Client 2", "Waiting for Final Feedback": "Final", "Offer": "Offer" };
+const SHORT: Record<string, string> = { "Puzzle Internal Assessment": "Internal assessment", "Service Delivery Manager Interview": "SDM interview", "Preparing Puzzle Profile": "Profile prep", "Ready to Submit": "Ready to submit", "Submitted to the client": "Submitted", "Client initial Interview": "Client interview", "Client Assessment": "Client assessment", "2nd Client Interview": "2nd interview", "Waiting for Final Feedback": "Final feedback", "Offer": "Offer" };
 
 export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
   const { totals, open, openRoles, monthly, today } = data;
@@ -117,8 +117,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
       <TaTabs
         footer={
           <>
-        <p className="ta-note">Billing rates, salaries, names and bonus amounts are never loaded into this page.</p>
-
         <footer className="foot">
           Updated {new Date().toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
           {" · "}refreshes automatically every minute · <AutoRefresh scope="/talent-acquisition" />
@@ -135,9 +133,17 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
               <div className="ta-scroll">
                 <table className={`ta-table${ashby ? " ta-active-table" : ""}`}>
                   <thead>
-                    <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th>
+                    {ashby && (
+                      <tr className="ta-grp">
+                        <th colSpan={5} />
+                        <th colSpan={4} className="g1">With Puzzle</th>
+                        <th colSpan={5} className="g2">With the client</th>
+                        <th className="g3" />
+                      </tr>
+                    )}
+                    <tr><th>Role</th><th>Client</th><th className="c">Open for</th><th className="c" title="Positions">Pos.</th><th>Status</th>
                       {ashby
-                        ? STAGES.map((n) => <th className="c" key={n} title={n}>{SHORT[n] ?? n}</th>)
+                        ? STAGES.map((n, k) => <th className={`c ${k < 4 ? "g1" : k < 9 ? "g2" : "g3"}${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n} title={n}>{SHORT[n] ?? n}</th>)
                         : <><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></>}
                     </tr>
                   </thead>
@@ -146,15 +152,14 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                       <tr key={r.key}>
                         <td><b>{r.title}</b></td>
                         <td>{r.client}</td>
-                        <td>{lobGroup(r.lob)}</td>
                         <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
                         <td className="c">{r.positions}</td>
                         <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
                         {ashby ? (() => {
                           const m = ashbyFor.get(r.key);
-                          if (!m) return <td className="c" colSpan={STAGES.length} title="No job with this title in Ashby">Not in Ashby</td>;
+                          if (!m) return <td className="c gl ta-none" colSpan={STAGES.length} title="No job with this title in Ashby">Not in Ashby</td>;
                           return STAGES.map((n, k) => (
-                            <td className="c" key={n} title={k === 0 && m.shared > 1 ? `Shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title` : undefined}>
+                            <td className={`c${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n} title={k === 0 && m.shared > 1 ? `Shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title` : undefined}>
                               <span className={`ta-n${m.job.stages[n] ? "" : " is-0"}`}>{m.job.stages[n]}</span>
                             </td>
                           ));
@@ -171,16 +176,14 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                       <tr key={j.id}>
                         <td><b>{j.title.replace(/\s*\(PZ-?\d+\)/i, "")}</b></td>
                         <td>{guessClient(j.title)}</td>
-                        <td>—</td>
                         <td className="c">—</td>
                         <td className="c">—</td>
                         <td><span className="pill warn" title="Open in Ashby, but no active role with this title in the sheet">Ashby only</span></td>
-                        {STAGES.map((n) => <td className="c" key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
+                        {STAGES.map((n, k) => <td className={`c${k === 0 || k === 4 || k === 9 ? " gl" : ""}`} key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {ashby && <p className="ta-note">Stages (hover a heading for its full name): Internal = Puzzle Internal Assessment · SDM = Service Delivery Manager Interview · Profile = Preparing Puzzle Profile · Ready = Ready to Submit · Sent = Submitted to the client · Client 1 = Client initial Interview · Assess. = Client Assessment · Client 2 = 2nd Client Interview · Final = Waiting for Final Feedback.</p>}
               </div>
             )}
           </section>
