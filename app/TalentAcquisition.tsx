@@ -166,12 +166,12 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
         </div>
 
         <div className="ta-block">
-          <div className="ta-sec"><h2>Client demand trend</h2><p>Positions each client opened in the last 90 days compared with the 90 days before. Click a client to see the roles behind the numbers.</p></div>
+          <div className="ta-sec"><h2>Client demand trend</h2><p>Which clients are asking us for more people, and which for fewer. Example: “BodyShop Booster  2 → 6  +4” means they asked for 2 positions in the previous 90 days and 6 in the last 90 days. Click a client to see the roles.</p></div>
           <div className="ta-grid">
-            {([["Asking for more", rising, "up"], ["Asking for less", falling, "down"]] as const).map(([title, rows, cls]) => (
+            {([["Clients opening MORE roles lately", rising, "up"], ["Clients opening FEWER roles lately", falling, "down"]] as const).map(([title, rows, cls]) => (
               <section className="chart-card" key={title}>
                 <h3>{title}</h3>
-                {rows.length === 0 && <p className="ta-note">No changes.</p>}
+                {rows.length === 0 && <p className="ta-note">No client changed.</p>}
                 {rows.map((t) => (
                   <details className="ta-cl ta-trend-d" key={t.client}>
                     <summary className="ta-trend">
