@@ -11,7 +11,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 const STALE_DAYS = 30;
 
 export default function TalentAcquisition({ data, ashby = null }: { data: HiringData; ashby?: AshbyData | null }) {
-  const { totals, open, openRoles, monthly, byStatus, today } = data;
+  const { totals, open, openRoles, monthly, today } = data;
   const age = (r: Role) => (r.opened ? dayDiff(r.opened, today) : null);
   const aging = openRoles.filter((r) => OPEN_STATUSES.includes(r.status) && (age(r) ?? 0) >= STALE_DAYS);
   const onHold = openRoles.filter((r) => r.status === "On Hold" && (age(r) ?? 0) >= STALE_DAYS);
@@ -25,15 +25,10 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
     return `${NO_SUBMIT_DAYS}+ days, no submittals`;
   };
   const best = monthly.reduce((a, m) => (m.hires > a.hires ? m : a), { month: "", hires: 0 });
-  const agingPositions = aging.reduce((n, r) => n + r.positions, 0);
 
   // Three plain sentences for the top of the page
   const summary = [
     `${plural(totals.hires, "person", "people")} hired since January${best.hires ? `; ${best.month} was the strongest month with ${best.hires}` : ""}.`,
-    open.openPositions === 0
-      ? "Nothing is open right now."
-      : `${plural(open.openPositions, "position", "positions")} open across ${plural(open.openRoles, "role", "roles")}${aging.length ? `, ${aging.length} of them open for ${STALE_DAYS} days or more` : `, none open for ${STALE_DAYS} days or more`}.`,
-    `${pct(totals.fillRate)} of the roles that closed ended in a hire (cancelled roles are not counted).`,
   ];
   const briefTone = aging.length > 0 || onHold.length > 0 || noSubmit.length > 0 ? "is-warn" : "is-ok";
 
@@ -58,14 +53,10 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
       }
     }
   }
-  const pipeTotal = ashby ? STAGES.reduce((n, k) => n + ashby.stages[k], 0) : 0;
-  const jobClient = new Map<string, string>();
-  for (const r of active) { const m = ashbyFor.get(r.key); if (m && m.shared === 1) jobClient.set(m.job.id, r.client); }
   const unmatched = ashby ? ashby.roles.filter((j) => !matchedJobs.has(j.id)) : [];
 
   const maxHires = Math.max(1, ...monthly.map((m) => m.hires));
   const histMax = Math.max(1, ...data.clientHistory.flatMap((g) => g.clients.map((c) => c.total)));
-  const maxStatus = Math.max(1, ...byStatus.map((s) => s.positions));
 
   return (
     <>
@@ -79,7 +70,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
             <div className="brief-main">
               <p className="brief-eyebrow">Executive summary</p>
               <h2 className="brief-title">{summary[0]}</h2>
-              <p className="ta-sum">{summary[1]}<br />{summary[2]}</p>
             </div>
           </div>
         </div>
@@ -91,7 +81,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
           <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate</span></div>
           <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
-          <div className={`ta-stat${aging.length ? " is-warn" : ""}`}><b>{aging.length}</b><span>Roles open {STALE_DAYS} days or more{agingPositions > aging.length ? ` (${agingPositions} positions)` : ""}</span></div>
         </div>
 
         {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && (
@@ -118,44 +107,20 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </div>
         )}
 
-        {ashby && (
-          <div className="ta-block">
-            <div className="ta-sec"><h2>Candidate pipeline</h2><p>Candidates in each Ashby stage, job by job. {pipeTotal} candidates in process.</p></div>
-            <section className="chart-card">
-              <div className="ta-scroll">
-                <table className="ta-table ta-stage-table">
-                  <thead><tr><th>Job</th><th>Client</th>{STAGES.map((n) => <th className="c" key={n}>{n}</th>)}<th className="c">Total</th></tr></thead>
-                  <tbody>
-                    {ashby.roles.map((j) => (
-                      <tr key={j.id}>
-                        <td><b>{j.title.replace(/\s*\(PZ-?\d+\)/i, "")}</b></td>
-                        <td>{jobClient.get(j.id) ?? "—"}</td>
-                        {STAGES.map((n) => <td className="c" key={n}><span className={`ta-n${j.stages[n] ? "" : " is-0"}`}>{j.stages[n]}</span></td>)}
-                        <td className="c"><b>{j.all}</b></td>
-                      </tr>
-                    ))}
-                    <tr className="ta-total-row">
-                      <td><b>All open jobs</b></td><td />
-                      {STAGES.map((n) => <td className="c" key={n}><b>{ashby.stages[n]}</b></td>)}
-                      <td className="c"><b>{pipeTotal}</b></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        )}
-
         <div className="ta-block">
-          <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are.</p></div>
+          <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are in the pipeline.</p></div>
           <details className="ta-details ta-active"><summary>Show the {active.length} active roles</summary>
           <section className="chart-card">
             {active.length === 0 && <p className="ta-note">No active roles right now.</p>}
             {active.length > 0 && (
               <div className="ta-scroll">
-                <table className="ta-table">
+                <table className={`ta-table${ashby ? " ta-stage-table" : ""}`}>
                   <thead>
-                    <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th>{ashby && <th className="c" title="Candidates in the SDM interview, submitted to the client or in a client interview, read from Ashby">In process (Ashby)</th>}</tr>
+                    <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th>
+                      {ashby
+                        ? STAGES.map((n) => <th className="c" key={n}>{n}</th>)
+                        : <><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></>}
+                    </tr>
                   </thead>
                   <tbody>
                     {active.map((r) => (
@@ -166,19 +131,21 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                         <td className="c">{age(r) === null ? "—" : `${age(r)}d`}</td>
                         <td className="c">{r.positions}</td>
                         <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
-                        <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
-                        <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
-                        <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
-                        {ashby && (() => {
+                        {ashby ? (() => {
                           const m = ashbyFor.get(r.key);
-                          if (!m) return <td className="c" title="No job with this title in Ashby">—</td>;
-                          const j = m.job;
-                          return (
-                            <td className="c" title={`${j.title}: ${j.sdm} in SDM interview · ${j.submitted} submitted to the client · ${j.client} in client interview${m.shared > 1 ? ` (shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title)` : ""}`}>
-                              <span className={`ta-n${j.total ? "" : " is-0"}`}>{j.total}</span>{m.shared > 1 ? <small className="ta-count">shared</small> : null}
+                          if (!m) return <td className="c" colSpan={STAGES.length} title="No job with this title in Ashby">Not in Ashby</td>;
+                          return STAGES.map((n, k) => (
+                            <td className="c" key={n} title={k === 0 && m.shared > 1 ? `Shared with ${m.shared - 1} other role${m.shared > 2 ? "s" : ""} with the same title` : undefined}>
+                              <span className={`ta-n${m.job.stages[n] ? "" : " is-0"}`}>{m.job.stages[n]}</span>
                             </td>
-                          );
-                        })()}
+                          ));
+                        })() : (
+                          <>
+                            <td className="c"><span className={`ta-n${r.internal ? "" : " is-0"}`}>{r.internal}</span></td>
+                            <td className="c"><span className={`ta-n${r.submitted ? "" : " is-0"}`}>{r.submitted}</span></td>
+                            <td className="c"><span className={`ta-n${r.inProcess ? "" : " is-0"}`}>{r.inProcess}</span></td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -267,20 +234,6 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
             <span><i style={{ background: "var(--bad)" }} />Lost</span>
             <span><i style={{ background: "#dfe4ea", border: "1px solid #b9c2cc" }} />Dropped: the role disappeared from the tracker without a final status</span>
           </div>
-        </div>
-
-        <div className="ta-block">
-          <div className="ta-sec"><h2>Outcomes</h2><p>What happened to the {totals.roles} roles opened since January.</p></div>
-          <section className="chart-card">
-            {byStatus.map((s) => (
-              <div className="ta-row" key={s.status}>
-                <span className="g-name">{s.status}<small>{plural(s.roles, "role", "roles")}</small></span>
-                <div className="ta-track ta-track-tip"><div className="ta-seg" tabIndex={0} data-tip={`${s.status}: ${s.positions} ${s.positions === 1 ? "position" : "positions"} in ${plural(s.roles, "role", "roles")}`} style={{ width: `${(s.positions / maxStatus) * 100}%`, background: s.status === "Filled" ? "var(--ok)" : s.status === "Cancelled" || s.status === "Lost" || s.status === "Dropped" ? "var(--seg-muted)" : "var(--blue)" }} /></div>
-                <span className="ta-val">{s.positions}</span>
-              </div>
-            ))}
-            <p className="ta-note">Fill rate = filled ÷ (filled + lost). Cancelled roles are not counted. Dropped roles disappeared from the tracker without a final status.</p>
-          </section>
         </div>
 
         <div className="ta-block">
