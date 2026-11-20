@@ -136,26 +136,6 @@ export default function TalentAcquisition({ data, ashby = null, pending = null }
         </div>
       </div>
 
-      <section className="ta-wk">
-        <div className="ta-wk-panel">
-          <h3>This week</h3>
-          <p className="ta-wk-sub">{fmtDate(wkStart)} – {fmtDate(wkEnd)}</p>
-          {hiresWk.map((h, i) => (<div key={`h${i}`} className="ta-wk-row"><span className="ta-tag t-h">Hired</span><span className="m">{h.role}<i>{h.client}</i></span><span className="d">{fmtDate(h.date).replace(/, \d{4}$/, "")}</span></div>))}
-          {openedWk.map((r, i) => (<div key={`o${i}`} className="ta-wk-row"><span className="ta-tag t-o">Opened</span><span className="m">{r.title}<i>{r.client}</i></span><span className="d">{r.opened ? fmtDate(r.opened).replace(/, \d{4}$/, "") : ""}</span></div>))}
-          {closedWk.map((r, i) => (<div key={`c${i}`} className="ta-wk-row"><span className="ta-tag t-c">{r.status === "Filled" ? "Filled" : r.status}</span><span className="m">{r.title}<i>{r.client}</i></span><span className="d">{r.closed ? fmtDate(r.closed).replace(/, \d{4}$/, "") : ""}</span></div>))}
-          {hiresWk.length + openedWk.length + closedWk.length === 0 && <p className="ta-wk-empty">Nothing new yet this week.</p>}
-        </div>
-        <div className="ta-wk-panel">
-          <h3>Coming up</h3>
-          <p className="ta-wk-sub">Starts, offers and roles that need a push</p>
-          {startingSoon.map((h, i) => (<div key={`s${i}`} className="ta-wk-row"><span className="ta-tag t-s">Starts</span><span className="m">{h.role}<i>{h.client}</i></span><span className="d">{fmtDate(h.startDate).replace(/, \d{4}$/, "")}</span></div>))}
-          {ashby && offers > 0 && <div className="ta-wk-row"><span className="ta-tag t-o">Offer</span><span className="m">{plural(offers, "candidate is", "candidates are")} at offer<i>Waiting for a decision</i></span><span className="d" /></div>}
-          {attentionList.map((r) => (<div key={r.key} className="ta-wk-row"><span className="ta-tag t-a">Attention</span><span className="m">{r.title}<i>{r.client} · {reason(r)}</i></span><span className="d" /></div>))}
-          {attention > attentionList.length && <p className="ta-wk-more">+{attention - attentionList.length} more in the Needs attention tab</p>}
-          {startingSoon.length === 0 && offers === 0 && attention === 0 && <p className="ta-wk-empty">Nothing pending.</p>}
-        </div>
-      </section>
-
       <TaTabs
         footer={
           <>
