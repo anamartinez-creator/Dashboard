@@ -72,12 +72,18 @@ const NOISE = new Set(["remote", "latam", "hybrid", "georgia", "us", "usa", "pz"
 export const titleTokens = (title: string): string[] =>
   title
     .toLowerCase()
-    .replace(/\(pz-?\d+\)/g, " ")
+    .replace(/\(?\bpz[\s-]?\d+\)?/g, " ")
     .split(/[^a-z0-9]+/)
     .filter((w) => w && !NOISE.has(w) && !/^\d+$/.test(w));
 
-/** How well a sheet title fits an Ashby title: 2 = same words, 1 = one title contains all of the other's words (2+ words), 0 = no match. */
-export function titleMatch(sheetTitle: string, ashbyTitle: string): 0 | 1 | 2 {
+/** How well a sheet title fits an Ashby title: 3 = same PZ code, 2 = same words, 1 = one title contains all of the other's words (2+ words), 0 = no match. */
+const pzCode = (t: string) => t.toLowerCase().match(/\bpz[\s-]?(\d+)\b/)?.[1] ?? null;
+
+export function titleMatch(sheetTitle: string, ashbyTitle: string): 0 | 1 | 2 | 3 {
+  // Both titles carry the same PZ code ("PZ-25" / "PZ 25"): that is a certain match
+  const ca = pzCode(sheetTitle);
+  const cb = pzCode(ashbyTitle);
+  if (ca && cb) return ca === cb ? 3 : 0;
   const a = titleTokens(sheetTitle);
   const b = titleTokens(ashbyTitle);
   if (!a.length || !b.length) return 0;

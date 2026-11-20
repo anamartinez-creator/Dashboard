@@ -53,7 +53,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
       const best = cands.filter((x) => x.m === bestM);
       for (const x of best) {
         const prev = ashbyFor.get(x.r.key);
-        if (!prev || bestM === 2) ashbyFor.set(x.r.key, { job, shared: best.length });
+        if (!prev || bestM >= 2) ashbyFor.set(x.r.key, { job, shared: best.length });
         matchedJobs.add(job.id);
       }
     }
