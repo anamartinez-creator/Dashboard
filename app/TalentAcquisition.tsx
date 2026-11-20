@@ -1,4 +1,5 @@
 import AutoRefresh from "./AutoRefresh";
+import TaTabs from "./TaTabs";
 import { STAGES, titleMatch, type AshbyData, type AshbyRole } from "@/lib/ashby";
 import type { HiringData, Role } from "@/lib/hiring";
 import { OPEN_STATUSES, lobGroup } from "@/lib/hiring";
@@ -97,49 +98,21 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
         </div>
       </div>
 
-      <main className="ta">
-        <nav className="ta-nav" aria-label="Sections">
-          {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && <a href="#attention">Needs attention</a>}
-          <a href="#roles">Active roles &amp; pipeline</a>
-          <a href="#momentum">Hiring momentum</a>
-          <a href="#quarters">Roles by quarter</a>
-          <a href="#clients">Demand by client</a>
-          {data.hires && <a href="#hires">Hires</a>}
-        </nav>
-        <div className="ta-stats">
-          <div className="ta-stat"><b>{totals.hires}</b><span>Hires since January</span></div>
-          <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
-          <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate</span></div>
-          <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
-        </div>
+      <TaTabs
+        footer={
+          <>
+        <p className="ta-note">Billing rates, salaries, names and bonus amounts are never loaded into this page.</p>
 
-        {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && (
-          <div className="ta-block" id="attention">
-            <div className="ta-sec"><h2>Needs attention</h2><p>Roles open 30 days or more, and roles open 2 weeks or more with no submittal yet.</p></div>
-            <section className="chart-card">
-              <div className="ta-scroll">
-                <table className="ta-table">
-                  <thead><tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th><th>Why</th></tr></thead>
-                  <tbody>
-                    {[...aging, ...onHold, ...noSubmit].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0)).map((r) => (
-                      <tr key={r.key}>
-                        <td><b>{r.title}</b></td>
-                        <td>{r.client}</td>
-                        <td className="c">{age(r) === null ? "—" : `${age(r)} days`}</td>
-                        <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
-                        <td>{reason(r)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-        )}
-
+        <footer className="foot">
+          Updated {new Date().toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
+          {" · "}refreshes automatically every minute · <AutoRefresh scope="/talent-acquisition" />
+        </footer>
+          </>
+        }
+        tabs={[
+          { id: "roles", label: "Active roles & pipeline", node: (<>
         <div className="ta-block" id="roles">
           <div className="ta-sec"><h2>Active roles</h2><p>{plural(active.length, "role", "roles")} being hired for right now, oldest first, and where their candidates are in the pipeline.</p></div>
-          <details className="ta-details ta-active"><summary>Show the {active.length} active roles</summary>
           <section className="chart-card">
             {active.length === 0 && <p className="ta-note">No active roles right now.</p>}
             {active.length > 0 && (
@@ -148,7 +121,7 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
                   <thead>
                     <tr><th>Role</th><th>Client</th><th>Team</th><th className="c">Open for</th><th className="c">Positions</th><th>Status</th>
                       {ashby
-                        ? STAGES.map((n) => <th className="c" key={n}>{n}</th>)
+                        ? STAGES.map((n) => <th className="c" key={n} title={n}>{SHORT[n] ?? n}</th>)
                         : <><th className="c">Internal</th><th className="c">Submitted</th><th className="c">With client</th></>}
                     </tr>
                   </thead>
@@ -195,7 +168,41 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
               </div>
             )}
           </section>
-          </details>
+        </div>
+
+          </>) },
+          { id: "attention", label: "Needs attention", node: (<>
+        {(aging.length > 0 || onHold.length > 0 || noSubmit.length > 0) && (
+          <div className="ta-block" id="attention">
+            <div className="ta-sec"><h2>Needs attention</h2><p>Roles open 30 days or more, and roles open 2 weeks or more with no submittal yet.</p></div>
+            <section className="chart-card">
+              <div className="ta-scroll">
+                <table className="ta-table">
+                  <thead><tr><th>Role</th><th>Client</th><th className="c">Open for</th><th>Status</th><th>Why</th></tr></thead>
+                  <tbody>
+                    {[...aging, ...onHold, ...noSubmit].sort((a, b) => (age(b) ?? 0) - (age(a) ?? 0)).map((r) => (
+                      <tr key={r.key}>
+                        <td><b>{r.title}</b></td>
+                        <td>{r.client}</td>
+                        <td className="c">{age(r) === null ? "—" : `${age(r)} days`}</td>
+                        <td><span className={`pill ${tone(r.status)}`}>{r.status}</span></td>
+                        <td>{reason(r)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        )}
+
+          </>) },
+          { id: "momentum", label: "Hiring momentum", node: (<>
+        <div className="ta-stats">
+          <div className="ta-stat"><b>{totals.hires}</b><span>Hires since January</span></div>
+          <div className="ta-stat"><b>{open.openPositions}</b><span>Open positions ({plural(open.openRoles, "role", "roles")})</span></div>
+          <div className="ta-stat"><b>{pct(totals.fillRate)}</b><span>Fill rate</span></div>
+          <div className="ta-stat"><b>{data.avgDaysToStart === null ? "—" : `${Math.round(data.avgDaysToStart)} d`}</b><span>Average time to hire</span></div>
         </div>
 
         <div className="ta-block" id="momentum">
@@ -252,6 +259,8 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </section>
         </div>
 
+          </>) },
+          { id: "clients", label: "Demand by client", node: (<>
         <div className="ta-block" id="clients">
           <div className="ta-sec"><h2>Demand by client</h2><p>Positions each client has opened since January, and where they stand today. Click a client to see its roles with opening and closing dates. A role without a closing date keeps counting days as open until the sheet is edited.</p></div>
           <div className="ta-grid">
@@ -300,6 +309,8 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           </div>
         </div>
 
+          </>) },
+          ...(data.hires ? [{ id: "hires", label: "Hires", node: (<>
         <div className="ta-block" id="hires">
           <div className="ta-sec"><h2>Detail</h2><p>The full list of hires behind the numbers above.</p></div>
           {data.hires && (
@@ -323,13 +334,9 @@ export default function TalentAcquisition({ data, ashby = null }: { data: Hiring
           )}
         </div>
 
-        <p className="ta-note">Billing rates, salaries, names and bonus amounts are never loaded into this page.</p>
-
-        <footer className="foot">
-          Updated {new Date().toLocaleString("en-US", { timeZone: "America/Tegucigalpa", dateStyle: "medium", timeStyle: "short" })}
-          {" · "}refreshes automatically every minute · <AutoRefresh scope="/talent-acquisition" />
-        </footer>
-      </main>
+          </>) }] : []),
+        ]}
+      />
     </>
   );
 }
