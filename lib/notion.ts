@@ -204,13 +204,13 @@ export function stripPersonal(comment: string): string {
     .trim();
 }
 
-async function notionGet(path: string): Promise<any | null> {
+async function notionGet(path: string, revalidate = 300): Promise<any | null> {
   const token = process.env.NOTION_TOKEN;
   if (!token) return null;
   try {
     const res = await fetch(`https://api.notion.com/v1/${path}`, {
       headers: { Authorization: `Bearer ${token}`, "Notion-Version": NOTION_VERSION },
-      next: { revalidate: 300 },
+      next: { revalidate },
     });
     return res.ok ? await res.json() : null;
   } catch {
@@ -243,6 +243,43 @@ async function fetchLatestNote(pageId: string): Promise<LatestNote | null> {
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   const r = body[0];
   return r ? { date: r.date, health: cleanStatus(r.health), comment: stripPersonal(r.comment) } : null;
+}
+
+// --- Latest client comment --------------------------------------------------
+// Each client card has a "Meeting Date / Comment" table. The newest row is shown in the
+// Client meetings section. Only that table is read (never the billing-rates table), lines about
+// wellbeing, health, family or personal news are dropped, and the text is cut to 400 characters:
+// write a short headline first, because only the beginning reaches the page.
+export type ClientNote = { date: string; comment: string };
+const NOTE_MAX = 400;
+
+function shorten(text: string): string {
+  const t = stripPersonal(text).split("\n").map((l) => l.trim()).filter(Boolean).join(" ");
+  if (t.length <= NOTE_MAX) return t;
+  const cut = t.slice(0, NOTE_MAX);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("; "));
+  return end > 150 ? cut.slice(0, end + 1).replace(/;$/, ".") : cut.slice(0, cut.lastIndexOf(" ")) + "…";
+}
+
+async function fetchLatestClientNote(pageId: string): Promise<ClientNote | null> {
+  const blocks = await notionGet(`blocks/${pageId}/children?page_size=100`, 60);
+  const tables: any[] = (blocks?.results ?? []).filter((b: any) => b.type === "table");
+  for (const table of tables) {
+    const rows = await notionGet(`blocks/${table.id}/children?page_size=100`, 60);
+    const list: any[][][] = (rows?.results ?? []).filter((r: any) => r.type === "table_row").map((r: any) => r.table_row.cells);
+    if (list.length < 2) continue;
+    const header = list[0].map((c) => plain(c).toLowerCase());
+    const iDate = header.findIndex((h) => h.includes("date"));
+    const iComment = header.findIndex((h) => h.includes("comment"));
+    if (iDate < 0 || iComment < 0) continue; // e.g. the billing-rates table: skipped on purpose
+    const body = list
+      .slice(1)
+      .map((cells) => ({ date: cellDate(cells[iDate]), comment: shorten(plain(cells[iComment])) }))
+      .filter((r): r is { date: string; comment: string } => !!r.date && !!r.comment)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    if (body[0]) return body[0];
+  }
+  return null;
 }
 
 // This dashboard covers one SDM's side only (Ana Martinez by default; override
@@ -278,7 +315,18 @@ export async function loadTracker() {
     );
   }
 
-  return { owner: OWNER, engineers, sows, clients, notes, loadedAt: new Date().toISOString(), today: todayIso() };
+  // Newest comment of each client card (4 at a time, same rate-limit reason)
+  const clientNotes: Record<string, ClientNote> = {};
+  for (let i = 0; i < clients.length; i += 4) {
+    await Promise.all(
+      clients.slice(i, i + 4).map(async (cl) => {
+        const n = await fetchLatestClientNote(cl.id);
+        if (n) clientNotes[cl.id] = n;
+      })
+    );
+  }
+
+  return { owner: OWNER, engineers, sows, clients, notes, clientNotes, loadedAt: new Date().toISOString(), today: todayIso() };
 }
 
 
@@ -320,5 +368,5 @@ export async function loadCustomerSuccess() {
     (a, b) => order(a.status) - order(b.status) || (a.clients[0] ?? "").localeCompare(b.clients[0] ?? "") || a.name.localeCompare(b.name)
   );
   const clients = mapClients(c).filter((x) => x.client && x.unit === "Customer Success");
-  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, loadedAt: new Date().toISOString(), today: todayIso() };
+  return { owner: "Jose Paz", engineers, sows: [] as Sow[], clients, notes: {} as Record<string, LatestNote>, clientNotes: {} as Record<string, ClientNote>, loadedAt: new Date().toISOString(), today: todayIso() };
 }

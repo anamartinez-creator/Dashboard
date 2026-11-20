@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Client, Engineer, LatestNote, Sow } from "@/lib/notion";
+import type { Client, ClientNote, Engineer, LatestNote, Sow } from "@/lib/notion";
 import AutoRefresh from "./AutoRefresh";
 import { PILOT_DAYS, PILOT_STARTS } from "@/lib/pilots";
 import { CLIENT_MEETINGS } from "@/lib/client-meetings";
 import { computeClientHealth, sameClient, personFlag, PILOT_WARN_DAYS, type ClientHealth, type Light } from "@/lib/health";
 
-type Props = { title?: string; contacts?: boolean; owner: string; notes: Record<string, LatestNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
+type Props = { title?: string; contacts?: boolean; owner: string; notes: Record<string, LatestNote>; clientNotes?: Record<string, ClientNote>; engineers: Engineer[]; sows: Sow[]; clients: Client[]; loadedAt: string; today: string };
 
 const tone = (s: string) =>
   ({ "On track": "ok", Signed: "ok", "Needs Attention": "warn", Sent: "warn", "To confirm": "warn", "High Risk": "bad", Pending: "bad" } as Record<string, string>)[s] ?? "info";
@@ -37,7 +37,7 @@ function NameLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-export default function Dashboard({ title = "Software Service Delivery Dashboard", contacts = true, owner, notes, engineers, sows, clients, loadedAt, today }: Props) {
+export default function Dashboard({ title = "Software Service Delivery Dashboard", contacts = true, owner, notes, clientNotes, engineers, sows, clients, loadedAt, today }: Props) {
   const mine = engineers;
 
   const counts = useMemo(() => {
@@ -114,11 +114,18 @@ export default function Dashboard({ title = "Software Service Delivery Dashboard
     const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000);
     const inPilot = new Set(pilotClients.map((p) => p.h.key));
     const rows = health.map((h) => {
-      const m = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
+      const manual = CLIENT_MEETINGS.find((x) => sameClient(x.client, h.name)) ?? null;
+      // The newest comment in the client's Notion card wins when it is as recent as the manual entry
+      const card = clients.find((c) => sameClient(c.client, h.name));
+      const live = card ? clientNotes?.[card.id] : undefined;
+      const m =
+        live && (!manual || live.date >= manual.date)
+          ? { client: h.name, date: live.date, source: "Notion", title: `${h.name}: latest comment in tracker`, url: card?.url ?? null, notes: { comment: live.comment } }
+          : manual;
       return { h, m, ago: m ? dayDiff(m.date, today) : null, pilot: inPilot.has(h.key), pilotInfo: pilotClients.find((x) => x.h.key === h.key) ?? null };
     });
     return [...rows.filter((r) => !r.pilot), ...rows.filter((r) => r.pilot).sort((a, b) => a.h.name.localeCompare(b.h.name))];
-  }, [health, pilotClients, today]);
+  }, [health, pilotClients, today, clients, clientNotes]);
 
   // Clients in pilot have their own section; the health list is for the rest
   const shownHealth = useMemo(() => {
