@@ -148,7 +148,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                       <span className="ta-val">{c.total}</span>
                     </summary>
                     <table className="ta-table ta-cl-table">
-                      <thead><tr><th>Role</th><th>Status</th><th className="c">Positions</th><th>Opened</th><th>Closed</th><th className="c">Days</th></tr></thead>
+                      <thead><tr><th>Role</th><th>Status</th><th className="c">Pos.</th><th>Opened</th><th>Closed</th><th className="c">Days</th></tr></thead>
                       <tbody>
                         {c.roles.map((r, i) => (
                           <tr key={i}>
@@ -157,7 +157,7 @@ export default function TalentAcquisition({ data }: { data: HiringData }) {
                             <td className="c">{r.positions}</td>
                             <td>{r.opened ? fmtDate(r.opened) : "—"}</td>
                             <td>{r.closed ? fmtDate(r.closed) : "—"}</td>
-                            <td className="c" title={r.counting ? "No closing date recorded: still counting until the sheet is edited" : undefined}>{r.days === null ? "—" : `${r.days}d`}{r.counting && r.days !== null ? <small className="ta-count"> counting</small> : null}</td>
+                            <td className="c" title={r.counting ? "No closing date recorded: still counting until the sheet is edited" : undefined}>{r.days === null ? "—" : `${r.days}d`}{r.counting && r.days !== null ? <small className="ta-count">counting</small> : null}</td>
                           </tr>
                         ))}
                       </tbody>
